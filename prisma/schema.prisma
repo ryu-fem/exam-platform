@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String        @id @default(cuid())
+  telegramId      String?       @unique
+  username        String        @unique
+  passwordHash    String?
+  name            String
+  year            String // "1", "2", "3"
+  system          String? // "general", "azhar", "baccalaureate"
+  track           String? // "medicine", "engineering", "business", "arts"
+  electiveSubject String? // "math", "physics", "chemistry", "programming", "accounting", "business_admin", "psychology", "language"
+  status          String        @default("pending") // "pending", "active", "rejected"
+  role            String        @default("student") // "student", "admin"
+  createdAt       DateTime      @default(now())
+  verification    Verification?
+  attempts        QuizAttempt[]
+}
+
+model Verification {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelScreenshot String // URL or Base64
+  groupScreenshot   String // URL or Base64
+  status            String   @default("pending") // "pending", "approved", "rejected"
+  rejectionReason   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Quiz {
+  id            String       @id @default(cuid())
+  subject       String // matches SUBJECTS keys in the app (e.g. "math")
+  title         String
+  year          String // "1", "2", "3"
+  system        String? // "general", "azhar", "baccalaureate" (null = any)
+  track         String? // "medicine", "engineering", "business", "arts" (null = any)
+  elective      String? // elective subject key (null = any)
+  questionCount Int
+  durationMins  Int
+  xpReward      Int
+  difficulty    String   @default("medium") // "easy", "medium", "hard"
+  createdAt     DateTime @default(now())
+  attempts      QuizAttempt[]
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  quizId      String
+  score       Int // percentage 0-100
+  xpEarned    Int
+  answers     Json?
+  completedAt DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([quizId])
+}

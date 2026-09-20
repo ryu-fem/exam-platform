@@ -1,0 +1,87 @@
+{
+  "common": {
+    "appName": "Exam Platform",
+    "logout": "Logout",
+    "loading": "Loading…",
+    "tryAgain": "Something went wrong. Please try again.",
+    "comingSoon": "Coming soon",
+    "xp": "XP",
+    "level": "Level",
+    "viewAll": "View all",
+    "back": "Back"
+  },
+  "Footer": {
+    "copyright": "© 2026",
+    "developedBy": "Under development by Sheikh Qutta"
+  },
+  "metadata": {
+    "description": "The unified exam platform for secondary education."
+  },
+  "home": {
+    "badge": "The unified platform for secondary education",
+    "subtitle": "The unified exam platform for Thanaweya Amma and Azhar",
+    "description": "Your all-in-one exam hub for secondary education. Sign up, verify your membership, and get access to exams and study resources tailored to your track.",
+    "createAccount": "Create account",
+    "login": "Log in",
+    "verifiedMembership": "Verified membership",
+    "allTracksSupported": "All tracks supported"
+  },
+  "navbar": {
+    "home": "Home",
+    "availableQuizzes": "Available Quizzes",
+    "leaderboard": "Leaderboard",
+    "accountSettings": "Account Settings",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "languageToEn": "Switch to English",
+    "languageToAr": "Switch to Arabic",
+    "profile": "Your profile"
+  },
+  "dashboard": {
+    "welcomeBack": "Welcome back",
+    "greeting": "Hi, {name}",
+    "tagline": "Consistency beats talent when talent doesn't work hard. Keep going.",
+    "quoteTitle": "Daily Motivation",
+    "statsTitle": "Your statistics",
+    "statsSubtitle": "A clear look at how you're doing",
+    "completedQuizzes": "Completed Quizzes",
+    "averageScore": "Average Score",
+    "bestSubject": "Best Subject",
+    "noBestSubject": "None yet",
+    "aiAnalysisTitle": "AI Performance Analysis",
+    "aiSubtitle": "A personalized report based on your real results",
+    "xpLabel": "Total XP",
+    "levelLabel": "Level",
+    "progressToNext": "{xp} XP to next level",
+    "analyzing": "Analyzing your results…",
+    "noDataYet": "You haven't completed any quizzes yet. Finish your first quiz and your report will appear here.",
+    "aiError": "Couldn't generate the analysis right now. Please try again.",
+    "regenerate": "Regenerate"
+  },
+  "quizzes": {
+    "title": "Available Quizzes",
+    "subtitle": "Quizzes that match your year, system, and track",
+    "empty": "No quizzes are available for your level yet. Check back soon!",
+    "difficultyEasy": "Easy",
+    "difficultyMedium": "Medium",
+    "difficultyHard": "Hard",
+    "pointsReward": "{xp} XP on completion",
+    "questions": "{count} questions",
+    "minutes": "{count} min",
+    "startQuiz": "Start Quiz"
+  },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "subtitle": "Meet the top students this term",
+    "rank": "Rank",
+    "student": "Student",
+    "points": "XP",
+    "scoringNote": "Leaderboard will be filled as soon as quiz results are tracked."
+  },
+  "settings": {
+    "title": "Account Settings",
+    "subtitle": "Manage your profile and preferences",
+    "langPref": "Language & Appearance",
+    "profileSection": "Profile"
+  }
+}
