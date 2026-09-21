@@ -1,13 +1,30 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { SYSTEMS, ELECTIVES } from "@/lib/constants";
+import { notifyAdminNewStudent } from "@/lib/telegram-notify";
+import {
+  BACCALAUREATE_ELECTIVES,
+  SECTIONS,
+  SYSTEMS,
+} from "@/lib/curriculum";
+
+const PASSWORD_POLICY =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,64}$/;
+
+const SECTION_VALUES = Array.from(
+  new Set(Object.values(SECTIONS).flat().map((s) => s.value)),
+);
+const SYSTEM_VALUES = Array.from(
+  new Set(Object.values(SYSTEMS).flat().map((s) => s.value)),
+);
 
 const schema = z
   .object({
     telegramId: z.string().optional(),
+    avatarUrl: z.string().optional().nullable(),
     name: z.string().trim().min(2, "Name must be at least 2 characters"),
     username: z
       .string()
@@ -16,14 +33,19 @@ const schema = z
       .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores"),
     password: z
       .string()
-      .min(6, "Password must be at least 6 characters"),
+      .min(8, "Password must be at least 8 characters.")
+      .regex(
+        PASSWORD_POLICY,
+        "Password must include an uppercase letter, a lowercase letter, a number and a special character.",
+      ),
     year: z.enum(["1", "2", "3"], { message: "Select a grade" }),
-    system: z.enum(["general", "azhar", "baccalaureate"], {
+    system: z.enum(SYSTEM_VALUES as [string, ...string[]], {
       message: "Select a system",
     }),
+    section: z.enum(SECTION_VALUES as [string, ...string[]]).optional(),
     track: z.enum(["medicine", "engineering", "business", "arts"]).optional(),
     electiveSubject: z
-      .enum(["math", "physics", "chemistry", "programming", "accounting", "business_admin", "psychology", "language"])
+      .enum(["math", "physics", "chemistry", "programming", "accounting", "business_admin", "psychology", "second_language"])
       .optional(),
   })
   .superRefine((data, ctx) => {
@@ -45,7 +67,9 @@ const schema = z
         });
       }
       if (data.track) {
-        const validElectives = (ELECTIVES[data.track] ?? []).map((e) => e.val);
+        const validElectives = (BACCALAUREATE_ELECTIVES[data.track] ?? []).map(
+          (e) => e.value,
+        );
         if (!data.electiveSubject || !validElectives.includes(data.electiveSubject)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -54,7 +78,34 @@ const schema = z
           });
         }
       }
+      if (data.section) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["section"],
+          message: "Section is only available for General and Azhar systems",
+        });
+      }
     } else {
+      const validSections = (SECTIONS[`${data.year}:${data.system}`] ?? []).map(
+        (s) => s.value,
+      );
+
+      if (validSections.length > 0) {
+        if (!data.section || !validSections.includes(data.section)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["section"],
+            message: "Select a section",
+          });
+        }
+      } else if (data.section) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["section"],
+          message: "Section is not offered for this grade and system",
+        });
+      }
+
       if (data.track) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -85,6 +136,14 @@ export async function POST(req: NextRequest) {
     }
 
     const data = parsed.data;
+    const isBaccalaureate = data.system === "baccalaureate";
+    const profileFields = {
+      year: data.year,
+      system: data.system,
+      section: isBaccalaureate ? null : (data.section ?? null),
+      track: isBaccalaureate ? (data.track ?? null) : null,
+      electiveSubject: isBaccalaureate ? (data.electiveSubject ?? null) : null,
+    };
 
     const usernameTaken = await prisma.user.findUnique({
       where: { username: data.username },
@@ -118,10 +177,8 @@ export async function POST(req: NextRequest) {
           name: data.name,
           username: data.username,
           passwordHash,
-          year: data.year,
-          system: data.system,
-          track: data.system === "baccalaureate" ? data.track ?? null : null,
-          electiveSubject: data.system === "baccalaureate" ? data.electiveSubject ?? null : null,
+          ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
+          ...profileFields,
           status: "pending",
         },
         create: {
@@ -129,10 +186,8 @@ export async function POST(req: NextRequest) {
           name: data.name,
           username: data.username,
           passwordHash,
-          year: data.year,
-          system: data.system,
-          track: data.system === "baccalaureate" ? data.track ?? null : null,
-          electiveSubject: data.system === "baccalaureate" ? data.electiveSubject ?? null : null,
+          ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
+          ...profileFields,
           status: "pending",
           role: "student",
         },
@@ -143,21 +198,55 @@ export async function POST(req: NextRequest) {
           name: data.name,
           username: data.username,
           passwordHash,
-          year: data.year,
-          system: data.system,
-          track: data.system === "baccalaureate" ? data.track ?? null : null,
-          electiveSubject: data.system === "baccalaureate" ? data.electiveSubject ?? null : null,
+          ...profileFields,
           status: "pending",
           role: "student",
         },
       });
     }
 
+    await notifyAdminNewStudent({
+      name: user.name,
+      year: user.year,
+      track: user.track,
+    });
+
     return NextResponse.json({
       ok: true,
       user: { id: user.id, username: user.username },
     });
-  } catch {
+  } catch (error) {
+    // Unique constraint violation (username or telegramId) — most likely a race
+    // between the pre-check above and the actual insert/upsert, or a telegramId
+    // that belongs to a user who already picked this username.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const target = Array.isArray(error.meta?.target)
+        ? (error.meta.target as string[])
+        : [];
+      if (target.includes("telegramId")) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "This Telegram account is already registered.",
+            issues: { telegramId: ["This Telegram account is already registered."] },
+          },
+          { status: 409 },
+        );
+      }
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "This username is already taken.",
+          issues: { username: ["This username is already taken."] },
+        },
+        { status: 409 },
+      );
+    }
+
+    console.error("Onboarding error:", error);
     return NextResponse.json(
       { ok: false, error: "Something went wrong. Please try again." },
       { status: 500 },

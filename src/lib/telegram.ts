@@ -44,7 +44,7 @@ export async function notifyAdmin(text: string) {
 export function verifyTelegramAuth(query: Record<string, string>): boolean {
   if (!BOT_TOKEN) return false;
   const { hash, ...rest } = query;
-  if (!hash) return false;
+  if (!hash || !/^[a-f0-9]{64}$/i.test(hash)) return false;
 
   const dataCheckString = Object.keys(rest)
     .sort()
@@ -65,6 +65,27 @@ export function verifyTelegramAuth(query: Record<string, string>): boolean {
     Buffer.from(computedHash, "hex"),
     Buffer.from(hash, "hex"),
   );
+}
+
+export async function setTelegramWebhook(
+  url: string,
+  opts: { secretToken?: string } = {},
+) {
+  if (!BOT_TOKEN) return null;
+  try {
+    const res = await fetch(`${API_URL}/setWebhook`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url,
+        ...(opts.secretToken ? { secret_token: opts.secretToken } : {}),
+        allowed_updates: ["message"],
+      }),
+    });
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 export function buildOnboardingUrl(telegramId: string | number) {

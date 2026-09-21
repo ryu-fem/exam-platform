@@ -14,13 +14,17 @@ model User {
   name            String
   year            String // "1", "2", "3"
   system          String? // "general", "azhar", "baccalaureate"
+  section         String? // "scientific", "literary", "science_biology", "science_math"
   track           String? // "medicine", "engineering", "business", "arts"
   electiveSubject String? // "math", "physics", "chemistry", "programming", "accounting", "business_admin", "psychology", "language"
   status          String        @default("pending") // "pending", "active", "rejected"
   role            String        @default("student") // "student", "admin"
+  avatarUrl       String?
   createdAt       DateTime      @default(now())
   verification    Verification?
   attempts        QuizAttempt[]
+  notifications   Notification[]
+  changeRequests  AccountChangeRequest[]
 }
 
 model Verification {
@@ -41,27 +45,83 @@ model Quiz {
   title         String
   year          String // "1", "2", "3"
   system        String? // "general", "azhar", "baccalaureate" (null = any)
+  section       String? // "scientific", "literary", "science_biology", "science_math" (null = any)
   track         String? // "medicine", "engineering", "business", "arts" (null = any)
   elective      String? // elective subject key (null = any)
   questionCount Int
   durationMins  Int
   xpReward      Int
   difficulty    String   @default("medium") // "easy", "medium", "hard"
+  createdBy     String?
   createdAt     DateTime @default(now())
+  questions     Question[]
   attempts      QuizAttempt[]
+
+  @@index([year, system, section, track, elective])
+}
+
+model Question {
+  id            String  @id @default(cuid())
+  quizId        String
+  quiz          Quiz    @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type          String  @default("mcq") // "mcq", "essay"
+  text          String
+  options       Json? // string[] (MCQ only)
+  correctAnswer String // MCQ: correct option text; essay: model answer
+  explanation   String? // reason shown to the student after grading
+  points        Int     @default(1)
+  order         Int     @default(0)
+
+  @@index([quizId])
 }
 
 model QuizAttempt {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
   quizId      String
-  score       Int // percentage 0-100
-  xpEarned    Int
-  answers     Json?
-  completedAt DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers     Json? // { questionId: answer }
+  grading     Json? // [{ questionId, correct, pointsAwarded, reason }]
+  score       Int       @default(0) // percentage 0-100
+  xpEarned    Int       @default(0)
+  status      String    @default("pending") // "pending", "approved", "rejected"
+  note        String? // admin note / rejection reason
+  submittedAt DateTime  @default(now())
+  approvedAt  DateTime?
+  approvedBy  String?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([quizId])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("result") // "result", "account", "system"
+  link      String? // relative path (e.g. "/results/<attemptId>")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AccountChangeRequest {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  field        String // "name", "username", "password", "year", "system", "section", "track", "electiveSubject", "avatarUrl"
+  currentValue String? // value before the change (null for fields not previously set)
+  newValue     String // requested value (password is stored as a bcrypt hash)
+  note         String? // optional student note
+  status       String    @default("pending") // "pending", "approved", "rejected"
+  adminId      String? // admin who reviewed the request
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, status])
 }

@@ -11,7 +11,7 @@ export function Navbar({ children }: { children?: React.ReactNode }) {
   const t = useTranslations("common");
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md transition-colors duration-200 ease-out">
+    <header className="sticky top-0 z-40 border-b border-border bg-background transition-colors duration-200 ease-out">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">

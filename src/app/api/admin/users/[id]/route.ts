@@ -3,8 +3,7 @@ import type { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { sendTelegramMessage, getAppUrl, escapeHtml } from "@/lib/telegram";
-import { DEFAULT_LOCALE } from "@/lib/locale";
+import { notifyAccountApproved, notifyAccountRejected } from "@/lib/telegram-notify";
 
 export async function POST(
   req: NextRequest,
@@ -56,24 +55,10 @@ export async function POST(
       },
     });
 
-    const name = escapeHtml(user.name);
-    const appUrl = getAppUrl();
-    const chatId = user.telegramId;
-
     if (action === "approve") {
-      if (chatId) {
-        await sendTelegramMessage(
-          chatId,
-          `🎉 <b>Congratulations, ${name}!</b>\n\nYour account has been <b>approved</b>. You can now log in and start using the platform.\n\n<a href="${appUrl}/${DEFAULT_LOCALE}/login">Log in now</a>`,
-        );
-      }
+      await notifyAccountApproved(user.telegramId);
     } else {
-      if (chatId) {
-        await sendTelegramMessage(
-          chatId,
-          `❌ <b>Hello ${name},</b>\n\nUnfortunately, your verification was <b>rejected</b>.\n\n<b>Reason:</b> ${escapeHtml(reason)}\n\nPlease fix the issue and resubmit proof of membership.\n\n<a href="${appUrl}/${DEFAULT_LOCALE}/verify">Resubmit verification</a>`,
-        );
-      }
+      await notifyAccountRejected(user.telegramId, reason);
     }
 
     return NextResponse.json({ ok: true });

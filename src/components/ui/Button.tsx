@@ -34,7 +34,7 @@ export function buttonVariants(opts: { variant?: Variant; size?: Size } = {}) {
   const { variant = "primary", size = "md" } = opts;
   return cn(
     "inline-flex items-center justify-center gap-2 font-medium",
-    "transition-colors duration-200 ease-out cursor-pointer",
+    "transition-all duration-200 ease-in-out cursor-pointer",
     "disabled:opacity-50 disabled:cursor-not-allowed",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30",
     variants[variant],

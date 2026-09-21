@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
 export type StudentStats = {
@@ -11,17 +12,18 @@ export type StudentStats = {
 };
 
 /**
- * Real statistics drawn from the user's quiz attempts:
- * - completedQuizzes: count of finished quizzes
- * - averageScore: average percentage across attempts
- * - totalXp: completedQuizzes * 10 + averageScore * 2 (0 when no quizzes)
+ * Real statistics drawn from the user's quiz attempts (approved only):
+ * - completedQuizzes: count of approved quizzes
+ * - averageScore: average percentage across approved attempts
+ * - totalXp: sum of xpEarned across approved attempts
  * - bestSubject: subject with the highest average score
  */
-export async function getUserStats(userId: string): Promise<StudentStats> {
+async function computeUserStats(userId: string): Promise<StudentStats> {
   const attempts = await prisma.quizAttempt.findMany({
-    where: { userId },
+    where: { userId, status: "approved" },
     select: {
       score: true,
+      xpEarned: true,
       quiz: { select: { subject: true } },
     },
   });
@@ -35,7 +37,10 @@ export async function getUserStats(userId: string): Promise<StudentStats> {
         )
       : 0;
 
-  const totalXp = completedQuizzes > 0 ? completedQuizzes * 10 + averageScore * 2 : 0;
+  const totalXp =
+    completedQuizzes > 0
+      ? attempts.reduce((sum, attempt) => sum + attempt.xpEarned, 0)
+      : 0;
   const level = Math.floor(totalXp / 100) + 1;
   const xpIntoLevel = totalXp % 100;
 
@@ -68,4 +73,16 @@ export async function getUserStats(userId: string): Promise<StudentStats> {
     xpToNext: 100,
     bestSubject,
   };
+}
+
+/**
+ * Stats are memoized per user for 60s. This keeps the dashboard
+ * (and `/api/stats`) cheap without serving stale numbers for long.
+ */
+export function getUserStats(userId: string): Promise<StudentStats> {
+  return unstable_cache(
+    async () => computeUserStats(userId),
+    [`user-stats-${userId}`],
+    { revalidate: 60 },
+  )();
 }

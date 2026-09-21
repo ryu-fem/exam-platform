@@ -1,18 +1,15 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { StudentNavbar } from "@/components/StudentNavbar";
 import { Card } from "@/components/ui/Card";
-import { YEAR_LABELS, SYSTEM_LABELS } from "@/lib/constants";
+import { AccountSettingsForm } from "@/components/settings/AccountSettingsForm";
 import { requireStudentUser } from "@/lib/require-student";
 
 export default async function SettingsPage() {
   const user = await requireStudentUser();
   const t = await getTranslations("settings");
-
-  const yearLabel = user.year ? YEAR_LABELS[user.year] ?? "-" : "-";
-  const systemLabel = user.system ? SYSTEM_LABELS[user.system] : "-";
+  const rawLocale = await getLocale();
+  const locale = rawLocale === "ar" ? "ar" : "en";
 
   return (
     <>
@@ -23,49 +20,25 @@ export default async function SettingsPage() {
           <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
-              {t("profileSection")}
-            </h2>
-            <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-              <div className="rounded-lg border border-border bg-surface-muted px-4 py-3">
-                <dt className="text-xs text-muted">Name</dt>
-                <dd className="mt-0.5 font-medium">{user.name}</dd>
-              </div>
-              <div className="rounded-lg border border-border bg-surface-muted px-4 py-3">
-                <dt className="text-xs text-muted">Username</dt>
-                <dd className="mt-0.5 font-medium">@{user.username}</dd>
-              </div>
-              <div className="rounded-lg border border-border bg-surface-muted px-4 py-3">
-                <dt className="text-xs text-muted">Grade / Year</dt>
-                <dd className="mt-0.5 font-medium">{yearLabel}</dd>
-              </div>
-              <div className="rounded-lg border border-border bg-surface-muted px-4 py-3">
-                <dt className="text-xs text-muted">System</dt>
-                <dd className="mt-0.5 font-medium">{systemLabel}</dd>
-              </div>
-            </dl>
-          </Card>
-
-          <Card>
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
-              {t("langPref")}
-            </h2>
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted">
-                  <LanguageToggle />
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted">
-                  <ThemeToggle />
-                </span>
-              </div>
-            </div>
-          </Card>
-        </div>
+        <Card>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
+            {t("profileSection")}
+          </h2>
+          <p className="mb-4 text-xs text-muted">{t("workflowHint")}</p>
+          <AccountSettingsForm
+            locale={locale}
+            user={{
+              name: user.name,
+              username: user.username,
+              year: user.year,
+              system: user.system,
+              section: user.section,
+              track: user.track,
+              electiveSubject: user.electiveSubject,
+              avatarUrl: user.avatarUrl,
+            }}
+          />
+        </Card>
       </main>
     </>
   );

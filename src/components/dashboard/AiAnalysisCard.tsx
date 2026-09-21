@@ -24,6 +24,7 @@ type Props = {
 
 export function AiAnalysisCard({ stats, bestSubjectLabel, profile }: Props) {
   const t = useTranslations("dashboard");
+  const tc = useTranslations("common");
   const locale = useLocale();
 
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -100,7 +101,7 @@ export function AiAnalysisCard({ stats, bestSubjectLabel, profile }: Props) {
         <div className="flex items-center gap-2">
           <Badge variant="neutral" className="gap-1">
             <Sparkles className="h-3 w-3 text-accent" />
-            AI
+            {tc("aiShort")}
           </Badge>
           {stats.completedQuizzes > 0 && (
             <Button

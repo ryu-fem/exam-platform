@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
@@ -12,6 +13,7 @@ import { Label, Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/Alert";
 import { TelegramLoginButton, type TelegramAuthData } from "@/components/TelegramLoginButton";
 import { Link, useRouter } from "@/i18n/navigation";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 
 type ApiResponse = {
   ok: boolean;
@@ -24,6 +26,8 @@ type ApiResponse = {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
 
   const [username, setUsername] = useState("");
@@ -31,6 +35,26 @@ function LoginContent() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [tgBusy, setTgBusy] = useState(false);
+
+  // Maps the error surfaced by `signIn("credentials", { redirect: false })`
+  // to a human-readable message. The account-status errors are thrown from
+  // the authorize() callback in src/lib/auth.ts and flow through NextAuth's
+  // `error` query parameter.
+  const translateSignInError = (raw: string | null | undefined): string => {
+    if (!raw || raw === "CredentialsSignin") {
+      return t("invalidCredentials");
+    }
+    if (raw.includes("pending admin approval")) {
+      return t("pendingApproval");
+    }
+    if (raw.includes("was rejected")) {
+      return t("rejectedAccount");
+    }
+    if (raw.includes("not active")) {
+      return t("inactiveAccount");
+    }
+    return raw;
+  };
 
   const resolveTarget = async (fallback: string) => {
     try {
@@ -67,7 +91,7 @@ function LoginContent() {
       return;
     }
 
-    setError("Invalid username or password.");
+    setError(translateSignInError(result.error));
     setBusy(false);
   };
 
@@ -83,7 +107,7 @@ function LoginContent() {
       const json = (await res.json()) as ApiResponse;
 
       if (!json.ok) {
-        setError(json.error ?? "Authentication failed.");
+        setError(json.error ?? t("telegramAuthFailed"));
         setTgBusy(false);
         return;
       }
@@ -96,7 +120,7 @@ function LoginContent() {
       await signIn("telegram", { redirect: false, telegramId: json.telegramId });
       router.push(json.target ?? "/dashboard");
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(tc("tryAgain"));
       setTgBusy(false);
     }
   };
@@ -104,12 +128,13 @@ function LoginContent() {
   return (
     <>
       <Navbar />
-      <main className="flex flex-1 items-center justify-center px-4 py-16">
-        <div className="w-full max-w-md">
+      <main className="relative flex flex-1 items-center justify-center px-4 py-16">
+        <AnimatedBackground />
+        <div className="relative z-10 w-full max-w-md">
           <Card>
             <CardHeader className="text-center">
-              <h1 className="text-2xl font-bold tracking-tight">Login</h1>
-              <p className="text-sm text-muted">Welcome back</p>
+              <h1 className="text-2xl font-bold tracking-tight">{t("loginTitle")}</h1>
+              <p className="text-sm text-muted">{t("loginSubtitle")}</p>
             </CardHeader>
             <CardContent>
               {error && <ErrorBanner>{error}</ErrorBanner>}
@@ -118,7 +143,7 @@ function LoginContent() {
                 {tgBusy ? (
                   <div className="flex items-center gap-2 text-sm text-muted">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in…
+                    {t("signingIn")}
                   </div>
                 ) : (
                   <TelegramLoginButton onAuth={(d) => void handleTelegram(d)} />
@@ -127,44 +152,44 @@ function LoginContent() {
 
               <div className="my-5 flex items-center gap-3">
                 <span className="h-px flex-1 bg-border" />
-                <span className="text-xs text-muted">OR</span>
+                <span className="text-xs text-muted">{t("orDivider")}</span>
                 <span className="h-px flex-1 bg-border" />
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <Field>
-                  <Label htmlFor="username">Username</Label>
+                  <Label htmlFor="username">{t("username")}</Label>
                   <Input
                     id="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Your username"
+                    placeholder={t("usernamePlaceholder")}
                     autoComplete="username"
                   />
                 </Field>
                 <Field>
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t("password")}</Label>
                   <Input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Your password"
+                    placeholder={t("passwordPlaceholder")}
                     autoComplete="current-password"
                   />
                 </Field>
                 <Button type="submit" size="lg" className="w-full" loading={busy}>
-                  {busy ? "Signing in…" : "Login"}
+                  {busy ? t("signingIn") : t("login")}
                 </Button>
               </form>
 
               <p className="mt-4 text-center text-sm text-muted">
-                No account yet?{" "}
+                {t("noAccount")}{" "}
                 <Link
                   href="/register"
                   className="font-medium text-foreground underline-offset-4 hover:underline"
                 >
-                  Create account
+                  {t("createAccount")}
                 </Link>
               </p>
             </CardContent>

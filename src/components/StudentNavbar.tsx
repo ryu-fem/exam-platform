@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { GraduationCap, LogOut, Menu, X } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { NotificationBell } from "@/components/quiz/NotificationBell";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
@@ -57,10 +59,11 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
       className="block h-8 w-8 overflow-hidden rounded-full border border-border bg-surface-muted"
     >
       {user.photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={user.photoUrl}
           alt={user.name}
+          width={64}
+          height={64}
           className="h-full w-full object-cover"
         />
       ) : (
@@ -72,7 +75,7 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md transition-colors duration-200 ease-out">
+    <header className="sticky top-0 z-40 border-b border-border bg-background transition-colors duration-200 ease-out">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
@@ -84,7 +87,7 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
         </Link>
 
         <nav
-          aria-label="Main"
+          aria-label={t("mainNav")}
           className="hidden flex-1 items-center justify-center gap-1 md:flex"
         >
           {NAV_LINKS.map((link) => (
@@ -93,7 +96,7 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
               href={link.href}
               onClick={() => setMenuOpen(false)}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                "rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ease-in-out",
                 isActive(link.href)
                   ? "bg-surface-muted text-foreground"
                   : "text-muted hover:bg-surface-muted/60 hover:text-foreground",
@@ -107,6 +110,7 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
         <div className="flex items-center gap-2 md:gap-3">
           <LanguageToggle className="hidden sm:inline-flex" />
           <ThemeToggle className="hidden lg:inline-flex" />
+          <NotificationBell className="hidden md:flex" />
           {avatar}
           <button
             type="button"
@@ -122,7 +126,7 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
             onClick={handleLogout}
             title={tc("logout")}
             aria-label={tc("logout")}
-            className="hidden h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-border text-muted transition-colors hover:text-foreground md:flex"
+            className="hidden h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-border text-muted transition-all duration-200 ease-in-out hover:text-foreground md:flex"
           >
             <LogOut className="h-4 w-4" />
           </button>
@@ -131,7 +135,7 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
 
       {menuOpen && (
         <nav
-          aria-label="Mobile"
+          aria-label={t("mobileNav")}
           className="border-t border-border bg-background md:hidden"
         >
           <div className="flex flex-col gap-1 px-4 py-3">
@@ -141,7 +145,7 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
                 href={link.href}
                 onClick={() => setMenuOpen(false)}
                 className={cn(
-                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-in-out",
                   isActive(link.href)
                     ? "bg-surface-muted text-foreground"
                     : "text-muted hover:bg-surface-muted/60 hover:text-foreground",
@@ -154,11 +158,12 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
               <div className="flex items-center gap-3">
                 <LanguageToggle />
                 <ThemeToggle />
+                <NotificationBell />
               </div>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-all duration-200 ease-in-out hover:bg-surface-muted"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 {tc("logout")}

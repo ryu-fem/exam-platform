@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { Check, Info, Loader2, Upload, Users } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
@@ -19,6 +21,7 @@ interface FileUploadProps {
 
 function FileUpload({ label, description, onFile, preview }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslations("verify");
   const [error, setError] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,11 +32,11 @@ function FileUpload({ label, description, onFile, preview }: FileUploadProps) {
       return;
     }
     if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file.");
+      setError(t("errNotImage"));
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      setError("Image must be smaller than 8MB.");
+      setError(t("errTooLarge"));
       return;
     }
     const reader = new FileReader();
@@ -46,18 +49,21 @@ function FileUpload({ label, description, onFile, preview }: FileUploadProps) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className="group flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface-muted px-4 py-8 transition-colors duration-200 hover:border-foreground/40 cursor-pointer"
+        className="group flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-surface-muted px-4 py-8 transition-all duration-200 ease-in-out hover:border-foreground/40 cursor-pointer"
       >
         {preview ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={preview}
-            alt={label}
-            className="max-h-40 rounded-lg object-contain"
-          />
+          <div className="relative h-40 w-full">
+            <Image
+              src={preview}
+              alt={label}
+              fill
+              unoptimized
+              className="rounded-lg object-contain"
+            />
+          </div>
         ) : (
           <>
-            <Upload className="h-8 w-8 text-muted transition-colors group-hover:text-foreground" />
+            <Upload className="h-8 w-8 text-muted transition-all duration-200 ease-in-out group-hover:text-foreground" />
             <span className="text-sm font-medium">{label}</span>
             <span className="text-xs text-muted">{description}</span>
           </>
@@ -77,6 +83,8 @@ function FileUpload({ label, description, onFile, preview }: FileUploadProps) {
 
 export default function VerifyPage() {
   const router = useRouter();
+  const t = useTranslations("verify");
+  const tc = useTranslations("common");
   const { data: session, status } = useSession();
   const [channelShot, setChannelShot] = useState("");
   const [groupShot, setGroupShot] = useState("");
@@ -98,7 +106,7 @@ export default function VerifyPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!channelShot || !groupShot) {
-      setError("Please upload both screenshots.");
+      setError(t("errMissingBoth"));
       return;
     }
 
@@ -112,13 +120,13 @@ export default function VerifyPage() {
       });
       const json = (await res.json()) as { ok: boolean; error?: string };
       if (!json.ok) {
-        setError(json.error ?? "Upload failed. Please try again.");
+        setError(json.error ?? t("errUpload"));
         setBusy(false);
         return;
       }
       router.push("/pending");
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(tc("tryAgain"));
       setBusy(false);
     }
   };
@@ -133,73 +141,74 @@ export default function VerifyPage() {
         <div className="w-full max-w-xl">
           <Card>
             <CardHeader>
-              <h1 className="text-2xl font-bold tracking-tight">Verify Membership</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
               <p className="text-sm text-muted">
-                Join our channels and upload proof to activate your account.
+                {t("subtitle")}
               </p>
             </CardHeader>
             <CardContent>
               <div className="rounded-lg border border-border bg-surface-muted p-4">
                 <p className="mb-3 flex items-center gap-2 text-sm font-medium">
                   <Info className="h-4 w-4" />
-                  You must be a member of both:
+                  {t("memberOfBoth")}
                 </p>
                 <div className="space-y-2">
                   <a
                     href={channelUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm transition-colors hover:border-foreground/40"
+                    className="flex items-center justify-between rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm transition-all duration-200 ease-in-out hover:border-foreground/40"
                   >
                     <span className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted" />
-                      Telegram Channel
+                      {t("channel")}
                     </span>
-                    <span className="text-muted">Join →</span>
+                    <span className="text-muted">{t("join")}</span>
                   </a>
                   <a
                     href={groupUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm transition-colors hover:border-foreground/40"
+                    className="flex items-center justify-between rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm transition-all duration-200 ease-in-out hover:border-foreground/40"
                   >
                     <span className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted" />
-                      Telegram Group
+                      {t("group")}
                     </span>
-                    <span className="text-muted">Join →</span>
+                    <span className="text-muted">{t("join")}</span>
                   </a>
                 </div>
               </div>
 
               <p className="text-sm text-muted">
-                After joining, take a <strong>screenshot of the membership page</strong> for
-                the channel, and a <strong>screenshot of your profile inside the group</strong>.
+                {t.rich("instructions", {
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
               </p>
 
               {error && <ErrorBanner>{error}</ErrorBanner>}
 
               <form onSubmit={onSubmit} className="space-y-4">
                 <FileUpload
-                  label="Channel membership screenshot"
-                  description="Shows you are a member of the channel"
+                  label={t("channelLabel")}
+                  description={t("channelDesc")}
                   onFile={setChannelShot}
                   preview={channelShot}
                 />
                 <FileUpload
-                  label="Group membership screenshot"
-                  description="Shows your profile inside the group"
+                  label={t("groupLabel")}
+                  description={t("groupDesc")}
                   onFile={setGroupShot}
                   preview={groupShot}
                 />
 
                 <Button type="submit" size="lg" className="w-full" loading={busy}>
-                  {busy ? "Submitting…" : "Submit for review"}
+                  {busy ? t("submitting") : t("submit")}
                 </Button>
 
                 <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
                   <Check className="h-3.5 w-3.5" />
-                  An admin will review your screenshots shortly.
+                  {t("note")}
                 </p>
               </form>
             </CardContent>

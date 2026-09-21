@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/Card";
@@ -15,6 +16,7 @@ type Status = {
 
 export default function PendingPage() {
   const router = useRouter();
+  const t = useTranslations("pending");
   const { status: authStatus } = useSession();
   const [userStatus, setUserStatus] = useState<Status | null>(null);
   const [verificationSubmitted, setVerificationSubmitted] = useState(false);
@@ -101,17 +103,15 @@ export default function PendingPage() {
           <Card>
             <div className="space-y-3 py-2 text-center">
               <h1 className="text-xl font-semibold tracking-tight">
-                Pending Approval
+                {t("title")}
               </h1>
               <p className="text-sm text-muted">
-                Your account is being reviewed by an admin. This usually takes a
-                few minutes. We will notify you on Telegram once your account is
-                approved.
+                {t("description")}
               </p>
 
               {verificationSubmitted && (
                 <p className="text-xs text-muted">
-                  Screenshots received. Checking for updates every few seconds…
+                  {t("checking")}
                 </p>
               )}
             </div>
@@ -123,7 +123,7 @@ export default function PendingPage() {
             className="mt-6"
             onClick={() => window.location.reload()}
           >
-            Refresh status
+            {t("refresh")}
           </Button>
         </div>
       </main>

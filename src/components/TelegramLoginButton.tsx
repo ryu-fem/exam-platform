@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Send } from "lucide-react";
 import { finalUsername } from "@/lib/config";
 
@@ -25,6 +26,7 @@ const SCRIPT_ID = "telegram-widget-script";
 export function TelegramLoginButton({ onAuth }: { onAuth: (data: TelegramAuthData) => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onAuthRef = useRef(onAuth);
+  const t = useTranslations("auth");
 
   useEffect(() => {
     onAuthRef.current = onAuth;
@@ -63,7 +65,7 @@ export function TelegramLoginButton({ onAuth }: { onAuth: (data: TelegramAuthDat
     return (
       <div className="flex items-center gap-2 rounded-lg border border-border bg-surface p-3 text-sm text-muted">
         <Send className="h-4 w-4" />
-        Login with Telegram is not configured yet
+        {t("telegramNotConfigured")}
       </div>
     );
   }

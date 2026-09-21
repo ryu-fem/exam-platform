@@ -1,5 +1,8 @@
+"use client";
+
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +15,7 @@ export interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, className }: ModalProps) {
+  const t = useTranslations("common");
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -34,7 +38,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       aria-modal="true"
     >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/50 transition-opacity"
         onClick={onClose}
       />
       <div
@@ -49,8 +53,8 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
           {title && <h2 className="text-lg font-semibold">{title}</h2>}
           <button
             onClick={onClose}
-            aria-label="Close"
-            className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-muted hover:text-foreground cursor-pointer"
+            aria-label={t("close")}
+            className="rounded-lg p-1.5 text-muted transition-all duration-200 ease-in-out hover:bg-surface-muted hover:text-foreground cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>

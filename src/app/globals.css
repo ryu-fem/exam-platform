@@ -101,6 +101,29 @@ body {
     border-color 0.2s ease;
 }
 
+/* Flat quiz card: neutral tokens, border-color hover only — no scale or shadow. */
+@layer components {
+  .card-flat {
+    border: 1px solid #e5e5e5;
+    background-color: #fafafa;
+    border-radius: 0.75rem;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .card-flat:hover {
+    border-color: #a3a3a3;
+  }
+
+  .dark .card-flat {
+    border-color: #262626;
+    background-color: #171717;
+  }
+
+  .dark .card-flat:hover {
+    border-color: #525252;
+  }
+}
+
 @keyframes pulse-ring {
   0% {
     transform: scale(0.8);
@@ -126,6 +149,28 @@ body {
   }
 }
 
+/* Subtle, slow drifting used by the auth screen background dots. */
+@keyframes bw-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(24px, -32px, 0);
+  }
+}
+
+/* Slow vertical drift for the landing page editorial background rules. */
+@keyframes bw-drift {
+  0%,
+  100% {
+    transform: translate3d(0, -6%, 0);
+  }
+  50% {
+    transform: translate3d(0, 6%, 0);
+  }
+}
+
 @keyframes shake {
   0%,
   100% {
@@ -143,4 +188,36 @@ body {
 
 .animate-shake {
   animation: shake 0.5s ease-in-out;
+}
+
+/* Minimal page fade-in on route change (see <PageFade />). */
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-page-fade {
+  animation: page-fade 0.3s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-fade {
+    animation: none;
+  }
+  .animate-shake {
+    animation: none;
+  }
+  [data-auth-bg] span {
+    animation: none;
+  }
+  [data-landing-bg] {
+    display: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }

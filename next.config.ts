@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
     "@prisma/adapter-neon",
     "@neondatabase/serverless",
   ],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "api.telegram.org",
+      },
+    ],
+  },
 };
 
 const withNextIntl = createNextIntlPlugin();

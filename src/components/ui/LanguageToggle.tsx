@@ -17,6 +17,7 @@ type OptionLocale = (typeof OPTIONS)[number]["locale"];
 function LanguageToggleInner({ className }: { className?: string }) {
   const locale = useLocale();
   const t = useTranslations("navbar");
+  const tc = useTranslations("common");
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,7 +41,7 @@ function LanguageToggleInner({ className }: { className?: string }) {
   return (
     <div
       role="group"
-      aria-label="Language"
+      aria-label={tc("language")}
       className={cn(
         "relative inline-flex h-8 w-[5.25rem] items-center rounded-full border border-border bg-surface-muted p-1",
         className,
@@ -49,7 +50,7 @@ function LanguageToggleInner({ className }: { className?: string }) {
       <span
         aria-hidden
         className={cn(
-          "absolute start-1 top-1 h-6 w-9 rounded-full bg-accent shadow-sm transition-transform duration-200 ease-out",
+          "absolute start-1 top-1 h-6 w-9 rounded-full bg-accent shadow-sm transition-all duration-200 ease-in-out",
           isAr ? "translate-x-full rtl:-translate-x-full" : "translate-x-0",
         )}
       />
@@ -65,7 +66,7 @@ function LanguageToggleInner({ className }: { className?: string }) {
             }
             onClick={() => switchTo(option.locale)}
             className={cn(
-              "relative z-10 h-6 flex-1 rounded-full text-xs font-semibold transition-colors duration-200",
+              "relative z-10 h-6 flex-1 rounded-full text-xs font-semibold",
               active
                 ? "text-accent-foreground"
                 : "cursor-pointer text-muted hover:text-foreground",

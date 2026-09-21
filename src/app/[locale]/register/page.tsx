@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { Loader2, MessageCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Loader2 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { TelegramLoginButton, type TelegramAuthData } from "@/components/TelegramLoginButton";
 import { Alert } from "@/components/ui/Alert";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 
 type ApiResponse = {
   ok: boolean;
@@ -19,6 +21,8 @@ type ApiResponse = {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -34,7 +38,7 @@ export default function RegisterPage() {
       const json = (await res.json()) as ApiResponse;
 
       if (!json.ok) {
-        setError(json.error ?? "Authentication failed. Please try again.");
+        setError(json.error ?? t("telegramAuthFailed"));
         setBusy(false);
         return;
       }
@@ -50,7 +54,7 @@ export default function RegisterPage() {
 
       router.push(json.target ?? "/dashboard");
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(tc("tryAgain"));
       setBusy(false);
     }
   };
@@ -58,12 +62,13 @@ export default function RegisterPage() {
   return (
     <>
       <Navbar />
-      <main className="flex flex-1 items-center justify-center px-4 py-16">
-        <div className="w-full max-w-md">
+      <main className="relative flex flex-1 items-center justify-center px-4 py-16">
+        <AnimatedBackground />
+        <div className="relative z-10 w-full max-w-md">
           <Card>
             <CardHeader className="text-center">
-              <h1 className="text-2xl font-bold tracking-tight">Create Account</h1>
-              <p className="text-sm text-muted">Start with your Telegram account</p>
+              <h1 className="text-2xl font-bold tracking-tight">{t("registerTitle")}</h1>
+              <p className="text-sm text-muted">{t("registerSubtitle")}</p>
             </CardHeader>
             <CardContent>
               <div className="space-y-5">
@@ -73,7 +78,7 @@ export default function RegisterPage() {
                   {busy ? (
                     <div className="flex items-center gap-2 text-sm text-muted">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Verifying…
+                      {t("verifying")}
                     </div>
                   ) : (
                     <TelegramLoginButton
@@ -83,20 +88,6 @@ export default function RegisterPage() {
                     />
                   )}
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="h-px flex-1 bg-border" />
-                  <span className="text-xs text-muted">or</span>
-                  <span className="h-px flex-1 bg-border" />
-                </div>
-
-                <Link
-                  href="/onboarding"
-                  className="inline-flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground underline-offset-4 transition-colors hover:underline"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  Continue without Telegram
-                </Link>
               </div>
             </CardContent>
           </Card>

@@ -94,8 +94,8 @@ export function trackForElective(elective: string): string {
 export const CHANNEL_URL = () =>
   process.env.NEXT_PUBLIC_TELEGRAM_CHANNEL_URL ??
   process.env.TELEGRAM_CHANNEL_URL ??
-  "https://t.me/your_channel";
+  "https://t.me/TaltaSec";
 export const GROUP_URL = () =>
   process.env.NEXT_PUBLIC_TELEGRAM_GROUP_URL ??
   process.env.TELEGRAM_GROUP_URL ??
-  "https://t.me/your_group";
+  "https://t.me/basthalak";
