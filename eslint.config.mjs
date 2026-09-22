@@ -12,8 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Standalone Telegram bot (plain CommonJS Node script)
-    "bot.js",
     "prisma/**",
   ]),
 ]);

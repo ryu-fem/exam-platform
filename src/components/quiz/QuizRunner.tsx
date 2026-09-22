@@ -57,8 +57,11 @@ export function QuizRunner({
 
   const answersRef = useRef(answers);
   const flaggedRef = useRef(flagged);
-  answersRef.current = answers;
-  flaggedRef.current = flagged;
+
+  useEffect(() => {
+    answersRef.current = answers;
+    flaggedRef.current = flagged;
+  });
 
   const questionRefs = useRef<(HTMLLIElement | null)[]>([]);
 
@@ -177,8 +180,13 @@ export function QuizRunner({
             answers?: Record<string, string>;
             flagged?: Record<string, boolean>;
           };
-          if (saved.answers) setAnswers(saved.answers);
-          if (saved.flagged) setFlagged(saved.flagged);
+          // Defer the state update out of the effect body to avoid the
+          // cascading-render warning; the 30s auto-save below still picks
+          // up restored answers via the refs.
+          window.setTimeout(() => {
+            if (saved.answers) setAnswers(saved.answers);
+            if (saved.flagged) setFlagged(saved.flagged);
+          }, 0);
         }
       } catch {
         /* ignore corrupted storage */

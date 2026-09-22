@@ -89,7 +89,8 @@ export function AccountSettingsForm({ locale, user }: Props) {
   }, []);
 
   useEffect(() => {
-    void loadPending();
+    const timer = window.setTimeout(() => void loadPending(), 0);
+    return () => window.clearTimeout(timer);
   }, [loadPending]);
 
   const pendingFields = useMemo(

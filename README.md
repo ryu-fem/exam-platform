@@ -23,7 +23,6 @@ A full-stack exam platform for Egyptian secondary school students (Thanaweya Amm
 - **i18n:** next-intl
 - **Theme:** next-themes
 - **AI:** Groq SDK
-- **Bot:** node-telegram-bot-api
 
 ## 🚀 Getting Started
 
