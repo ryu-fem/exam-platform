@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -12,7 +11,7 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "bot": "node bot.js"
+    "bot": "node bot.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -31,7 +30,7 @@
     "next-auth": "^4.24.15",
     "next-intl": "^4.14.5",
     "next-themes": "^0.4.6",
-    "node-telegram-bot-api": "^2.1.0",
+    "node-telegram-bot-api": "0.66.0",
     "pg": "^8.23.0",
     "prisma": "^7.10.0",
     "react": "19.2.8",

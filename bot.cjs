@@ -3,21 +3,13 @@
  * Deploy on Railway/Render as a Background Worker
  */
 
-// ===== Import (new version exports `Bot` class) =====
-const TelegramBotModule = require("node-telegram-bot-api");
-
-const TelegramBot =
-  TelegramBotModule.Bot ||
-  TelegramBotModule.TelegramBot ||
-  TelegramBotModule;
+const TelegramBot = require("node-telegram-bot-api");
 
 if (typeof TelegramBot !== "function") {
-  console.error("❌ TelegramBot is not a constructor.");
-  console.error("Available exports:", Object.keys(TelegramBotModule).slice(0, 10));
+  console.error("❌ TelegramBot is not a constructor");
   process.exit(1);
 }
 
-// ===== Config =====
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID;
 const APP_URL = process.env.APP_URL || "https://your-app.vercel.app";
@@ -27,16 +19,13 @@ if (!TOKEN) {
   process.exit(1);
 }
 
-// ===== Create Bot =====
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-// ===== Commands list =====
 bot.setMyCommands([
   { command: "start", description: "Start registration / get your link" },
   { command: "status", description: "Check your registration link" },
 ]);
 
-// ===== Helpers =====
 function onboardingUrl(chatId) {
   return `${APP_URL}/onboarding?telegramId=${encodeURIComponent(chatId)}`;
 }
@@ -45,7 +34,6 @@ function escapeHtml(str) {
   return String(str).replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// ===== /start command =====
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   const url = onboardingUrl(chatId);
@@ -81,7 +69,6 @@ bot.onText(/\/start/, (msg) => {
   }
 });
 
-// ===== /status command =====
 bot.onText(/\/status/, (msg) => {
   bot.sendMessage(
     msg.chat.id,
@@ -98,7 +85,6 @@ bot.onText(/\/status/, (msg) => {
   );
 });
 
-// ===== Other messages =====
 bot.on("message", (msg) => {
   const text = msg.text || "";
   if (msg.chat.type === "private" && !text.startsWith("/")) {
@@ -111,7 +97,6 @@ bot.on("message", (msg) => {
   }
 });
 
-// ===== Error handling =====
 bot.on("polling_error", (err) => {
   console.error("[polling_error]", err.code || err.message || err);
 });
