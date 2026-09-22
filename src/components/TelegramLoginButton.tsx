@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Send } from "lucide-react";
-import { finalUsername } from "@/lib/config";
+import { finalUsername, finalBotId } from "@/lib/config";
 
 export interface TelegramAuthData {
   id: number;
@@ -23,9 +23,9 @@ declare global {
 
 const SCRIPT_ID = "telegram-widget-script";
 
-function oauthUrl(username: string): string {
+function oauthUrl(): string {
   const params = new URLSearchParams({
-    bot_id: username,
+    bot_id: finalBotId,
     origin: window.location.origin,
     request_access: "write",
   });
@@ -74,15 +74,15 @@ export function TelegramLoginButton({ onAuth }: { onAuth: (data: TelegramAuthDat
   }, []);
 
   const handleClick = () => {
-    if (!finalUsername) return;
+    if (!finalBotId) return;
     window.open(
-      oauthUrl(finalUsername),
+      oauthUrl(),
       "telegram-oauth",
       "popup=1,width=440,height=560",
     );
   };
 
-  if (!finalUsername) {
+  if (!finalBotId) {
     return (
       <div className="flex w-full max-w-sm items-center justify-center gap-3 rounded-lg border border-neutral-200 bg-white px-6 py-3 text-neutral-500 transition-all duration-200 ease-in-out dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
         <Send className="h-4 w-4 shrink-0" strokeWidth={1.5} />
@@ -93,8 +93,6 @@ export function TelegramLoginButton({ onAuth }: { onAuth: (data: TelegramAuthDat
 
   return (
     <>
-      {/* Hidden Telegram widget: provides the OAuth hash listener that
-          resolves the popup result and calls `window.onTelegramAuth`. */}
       <div
         ref={containerRef}
         aria-hidden="true"
