@@ -46,6 +46,14 @@ export function verifyTelegramAuth(query: Record<string, string>): boolean {
   const { hash, ...rest } = query;
   if (!hash || !/^[a-f0-9]{64}$/i.test(hash)) return false;
 
+  // Reject stale logins: the auth payload must have been produced within the
+  // last day, and must not be from the future.
+  const authDate = Number(query.auth_date);
+  const ageSeconds = Math.floor(Date.now() / 1000) - authDate;
+  if (!Number.isFinite(authDate) || ageSeconds < 0 || ageSeconds > 86400) {
+    return false;
+  }
+
   const dataCheckString = Object.keys(rest)
     .sort()
     .map((key) => `${key}=${rest[key]}`)
