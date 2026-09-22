@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="32" viewBox="0 0 168 32" fill="none">
+  <g fill="none">
+    <path d="M16 4 L28 12 L16 20 L4 12 Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+    <path d="M9.5 12.5 L14 16.8 L22.5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M16 20 L16 22.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="16" cy="24" r="1" fill="currentColor"/>
+  </g>
+  <text x="40" y="21" font-family="inherit" font-size="14" font-weight="700" letter-spacing="-0.02em" fill="currentColor">منصة الاختبارات</text>
+</svg>

@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { GraduationCap, LogOut, Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { signOut } from "next-auth/react";
 
+import { Logo } from "@/components/Logo";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { NotificationBell } from "@/components/quiz/NotificationBell";
@@ -77,13 +78,8 @@ export function StudentNavbar({ user }: { user: StudentNavbarUser }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background transition-colors duration-200 ease-out">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <GraduationCap className="h-5 w-5" />
-          </span>
-          <span className="text-base font-semibold tracking-tight">
-            {tc("appName")}
-          </span>
+        <Link href="/dashboard" className="flex shrink-0 items-center">
+          <Logo size={32} text={tc("appName")} />
         </Link>
 
         <nav

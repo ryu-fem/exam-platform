@@ -283,7 +283,8 @@
     "verifying": "جارٍ التحقق…",
     "orLower": "أو",
     "continueWithoutTelegram": "المتابعة بدون تيليجرام",
-    "telegramNotConfigured": "تسجيل الدخول عبر تيليجرام غير مفعّل بعد"
+    "telegramNotConfigured": "تسجيل الدخول عبر تيليجرام غير مفعّل بعد",
+    "loginWithTelegram": "المتابعة بتليجرام"
   },
   "common": {
     "appName": "منصة الاختبارات",

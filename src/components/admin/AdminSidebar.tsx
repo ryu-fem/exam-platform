@@ -6,7 +6,6 @@ import {
   Bell,
   CheckSquare,
   FileQuestion,
-  GraduationCap,
   Inbox,
   LayoutDashboard,
   LogOut,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
+import { Logo } from "@/components/Logo";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
@@ -102,12 +102,7 @@ export function AdminSidebar() {
       onClick={close}
       className="flex items-center gap-2.5 px-4 py-4"
     >
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-        <GraduationCap className="h-5 w-5" />
-      </span>
-      <span className="text-base font-semibold tracking-tight">
-        {tc("appName")}
-      </span>
+      <Logo text={tc("appName")} />
     </Link>
   );
 
@@ -122,13 +117,8 @@ export function AdminSidebar() {
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-border bg-background px-4 lg:hidden">
-        <Link href="/admin" onClick={close} className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <GraduationCap className="h-5 w-5" />
-          </span>
-          <span className="text-sm font-semibold tracking-tight">
-            {tc("appName")}
-          </span>
+        <Link href="/admin" onClick={close} className="flex items-center">
+          <Logo size={32} text={tc("appName")} textClassName="text-sm font-bold tracking-tight" />
         </Link>
         <div className="flex items-center gap-2">
           <LanguageToggle />

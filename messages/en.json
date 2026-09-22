@@ -283,7 +283,8 @@
     "verifying": "Verifying…",
     "orLower": "or",
     "continueWithoutTelegram": "Continue without Telegram",
-    "telegramNotConfigured": "Login with Telegram is not configured yet"
+    "telegramNotConfigured": "Login with Telegram is not configured yet",
+    "loginWithTelegram": "Continue with Telegram"
   },
   "common": {
     "appName": "Exam Platform",
