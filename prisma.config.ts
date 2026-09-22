@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -8,6 +9,9 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: env("DIRECT_URL"),
+  },
+  adapter: async () => {
+    return new PrismaPg({ connectionString: env("DIRECT_URL") });
   },
 });
