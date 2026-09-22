@@ -3,18 +3,17 @@
  * Deploy on Railway/Render as a Background Worker
  */
 
-// ===== Import TelegramBot (handles all export formats) =====
+// ===== Import (new version exports `Bot` class) =====
 const TelegramBotModule = require("node-telegram-bot-api");
 
 const TelegramBot =
-  (TelegramBotModule && TelegramBotModule.default) ||
-  (TelegramBotModule && TelegramBotModule.TelegramBot) ||
+  TelegramBotModule.Bot ||
+  TelegramBotModule.TelegramBot ||
   TelegramBotModule;
 
 if (typeof TelegramBot !== "function") {
-  console.error("❌ Failed to load TelegramBot class.");
-  console.error("Module type:", typeof TelegramBotModule);
-  console.error("Module keys:", Object.keys(TelegramBotModule || {}));
+  console.error("❌ TelegramBot is not a constructor.");
+  console.error("Available exports:", Object.keys(TelegramBotModule).slice(0, 10));
   process.exit(1);
 }
 
@@ -31,6 +30,7 @@ if (!TOKEN) {
 // ===== Create Bot =====
 const bot = new TelegramBot(TOKEN, { polling: true });
 
+// ===== Commands list =====
 bot.setMyCommands([
   { command: "start", description: "Start registration / get your link" },
   { command: "status", description: "Check your registration link" },
