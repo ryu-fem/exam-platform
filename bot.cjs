@@ -7,8 +7,8 @@
  * On Render, create a Background Worker service with this start command:
  *   node bot.js
  */
-const TelegramBot = require("node-telegram-bot-api");
-
+const TelegramBotModule = require("node-telegram-bot-api");
+const TelegramBot = TelegramBotModule.default || TelegramBotModule;
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID;
 const APP_URL = process.env.APP_URL || "https://your-app.vercel.app";
