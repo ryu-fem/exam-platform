@@ -1,23 +1,34 @@
 /**
- * Exam Platform — Telegram Bot (standalone, deployable on Render.com)
- *
- * Start it locally with:
- *   TELEGRAM_BOT_TOKEN=... TELEGRAM_ADMIN_ID=... APP_URL=... node bot.js
- *
- * On Render, create a Background Worker service with this start command:
- *   node bot.js
+ * Exam Platform — Telegram Bot
+ * Deploy on Railway/Render as a Background Worker
  */
+
+// ===== Import TelegramBot (handles all export formats) =====
 const TelegramBotModule = require("node-telegram-bot-api");
-const TelegramBot = TelegramBotModule.default || TelegramBotModule;
+
+const TelegramBot =
+  (TelegramBotModule && TelegramBotModule.default) ||
+  (TelegramBotModule && TelegramBotModule.TelegramBot) ||
+  TelegramBotModule;
+
+if (typeof TelegramBot !== "function") {
+  console.error("❌ Failed to load TelegramBot class.");
+  console.error("Module type:", typeof TelegramBotModule);
+  console.error("Module keys:", Object.keys(TelegramBotModule || {}));
+  process.exit(1);
+}
+
+// ===== Config =====
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_ID;
 const APP_URL = process.env.APP_URL || "https://your-app.vercel.app";
 
 if (!TOKEN) {
-  console.error("TELEGRAM_BOT_TOKEN is required.");
+  console.error("❌ TELEGRAM_BOT_TOKEN is required.");
   process.exit(1);
 }
 
+// ===== Create Bot =====
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 bot.setMyCommands([
@@ -25,10 +36,16 @@ bot.setMyCommands([
   { command: "status", description: "Check your registration link" },
 ]);
 
+// ===== Helpers =====
 function onboardingUrl(chatId) {
   return `${APP_URL}/onboarding?telegramId=${encodeURIComponent(chatId)}`;
 }
 
+function escapeHtml(str) {
+  return String(str).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// ===== /start command =====
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   const url = onboardingUrl(chatId);
@@ -43,9 +60,7 @@ bot.onText(/\/start/, (msg) => {
     parse_mode: "HTML",
     disable_web_page_preview: true,
     reply_markup: {
-      inline_keyboard: [
-        [{ text: "🚀 Continue registration", url }],
-      ],
+      inline_keyboard: [[{ text: "🚀 Continue registration", url }]],
     },
   });
 
@@ -55,15 +70,18 @@ bot.onText(/\/start/, (msg) => {
       .sendMessage(
         ADMIN_ID,
         `🆕 A new user started the registration process:\n\n` +
-          `👤 Name: <b>${name.replace(/</g, "&lt;")}</b>\n` +
+          `👤 Name: <b>${escapeHtml(name)}</b>\n` +
           `🆔 Telegram ID: <code>${chatId}</code>\n` +
-          `📎 Username: ${msg.from?.username ? "@" + msg.from.username : "—"}`,
+          `📎 Username: ${
+            msg.from?.username ? "@" + escapeHtml(msg.from.username) : "—"
+          }`,
         { parse_mode: "HTML" },
       )
       .catch(() => {});
   }
 });
 
+// ===== /status command =====
 bot.onText(/\/status/, (msg) => {
   bot.sendMessage(
     msg.chat.id,
@@ -80,6 +98,7 @@ bot.onText(/\/status/, (msg) => {
   );
 });
 
+// ===== Other messages =====
 bot.on("message", (msg) => {
   const text = msg.text || "";
   if (msg.chat.type === "private" && !text.startsWith("/")) {
@@ -92,6 +111,7 @@ bot.on("message", (msg) => {
   }
 });
 
+// ===== Error handling =====
 bot.on("polling_error", (err) => {
   console.error("[polling_error]", err.code || err.message || err);
 });
