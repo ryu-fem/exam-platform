@@ -83,10 +83,23 @@ fail ("login never proceeds") if the bot and domain are not configured correctly
 
 1. Open [@BotFather](https://t.me/BotFather) → select your bot → tap **Bot Settings**.
 2. Choose **Domain** (`/setdomain`) and enter your site's domain **without** scheme or
-   path — e.g. `ahmed-elgohary.com` (or `localhost` while developing).
+   path — e.g. `exam-platform-one-omega.vercel.app` (or `localhost` while developing).
 3. Confirm that `NEXT_PUBLIC_TELEGRAM_BOT_ID` equals the numeric prefix of
    `TELEGRAM_BOT_TOKEN`. If they disagree, the popup and the server-side signature
    check target different bots and every login fails.
+
+### Current verified bot credentials (production)
+
+| Config | Value |
+| --- | --- |
+| Bot username | `hejqdadbot` |
+| `NEXT_PUBLIC_TELEGRAM_BOT_ID` | `8389871615` (= numeric prefix of the token) |
+| `TELEGRAM_BOT_TOKEN` | `8389871615:AAF…` from @BotFather |
+| `NEXTAUTH_URL` / `APP_URL` | `https://exam-platform-one-omega.vercel.app` |
+| BotFather `/setdomain` | `exam-platform-one-omega.vercel.app` |
+
+The numeric prefix of the token (before the `:`) **must always** equal
+`NEXT_PUBLIC_TELEGRAM_BOT_ID` — keep them in sync when rotating the token.
 
 Flow after a successful popup:
 

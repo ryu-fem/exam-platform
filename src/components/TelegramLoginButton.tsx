@@ -137,24 +137,31 @@ export function TelegramLoginButton({
 
     window.addEventListener("focus", handleFocusReturn);
 
-    window.Telegram.Login.auth(
-      {
-        bot_id: finalBotIdNumber,
-        origin: window.location.origin,
-        request_access: "write",
-        lang: locale,
-      },
-      (user) => {
-        resolvedRef.current = true;
-        settle(() => {
-          if (user && typeof user.id === "number" && user.hash) {
-            onAuth(user);
-          } else {
-            onCancel?.();
-          }
-        });
-      },
-    );
+    try {
+      // Called synchronously inside the click handler so window.open() counts
+      // as a valid user gesture (no async drift = popup blockers won't kill it).
+      window.Telegram.Login.auth(
+        {
+          bot_id: finalBotIdNumber,
+          origin: window.location.origin,
+          request_access: "write",
+          lang: locale,
+        },
+        (user) => {
+          resolvedRef.current = true;
+          settle(() => {
+            if (user && typeof user.id === "number" && user.hash) {
+              onAuth(user);
+            } else {
+              onCancel?.();
+            }
+          });
+        },
+      );
+    } catch {
+      // A synchronous throw means the popup never opened; reset and surface it.
+      settle(() => onBlocked?.());
+    }
   };
 
   if (scriptFailed || !configured) {
