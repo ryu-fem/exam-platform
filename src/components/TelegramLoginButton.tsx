@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import { Loader2, Send } from "lucide-react";
-import { telegramBotIdConfigured, finalBotIdNumber } from "@/lib/config";
+import { finalBotIdNumber } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 export interface TelegramAuthData {
@@ -58,7 +58,8 @@ export function TelegramLoginButton({
   const [scriptFailed, setScriptFailed] = useState(false);
   const resolvedRef = useRef(false);
 
-  const configured = telegramBotIdConfigured();
+  // finalBotIdNumber can never be 0: config falls back to 8389871615.
+  const configured = finalBotIdNumber > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -151,14 +152,6 @@ export function TelegramLoginButton({
       settle(() => onBlocked?.());
     }
   };
-
-  if (scriptFailed || !configured) {
-    return (
-      <div className="flex w-full max-w-sm items-center justify-center rounded-lg border border-neutral-200 bg-white px-6 py-3 text-sm text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
-        {label}
-      </div>
-    );
-  }
 
   return (
     <button
