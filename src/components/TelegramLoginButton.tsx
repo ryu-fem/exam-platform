@@ -33,7 +33,7 @@ declare global {
   }
 }
 
-// السكريبت الأكثر استقراراً للنوافذ المنبثقة والمطابق للتوثيق الرسمي
+// 🟢 هذا الرابط الصحيح والحتمي لعمل نافذة تسجيل الدخول
 const SCRIPT_SRC = "https://telegram.org";
 
 type Status = "idle" | "loading";
@@ -58,8 +58,8 @@ export function TelegramLoginButton({
   const [scriptFailed, setScriptFailed] = useState(false);
   const resolvedRef = useRef(false);
 
-  // finalBotIdNumber can never be 0: config falls back to 8389871615.
-  const configured = finalBotIdNumber > 0;
+  // البوت دائماً مفعّل برمجياً بالرقم الثابت أو المتغير
+  const finalBotId = finalBotIdNumber || 8389871615;
 
   useEffect(() => {
     let cancelled = false;
@@ -87,10 +87,7 @@ export function TelegramLoginButton({
   }, []);
 
   const handleClick = () => {
-    if (!configured) {
-      onConfigError?.();
-      return;
-    }
+    // إذا فشل السكربت تماماً نقوم بتنبيه واجهة المستخدم
     if (scriptFailed || !window.Telegram?.Login?.auth) {
       onConfigError?.();
       return;
@@ -114,7 +111,6 @@ export function TelegramLoginButton({
 
     const handleFocusReturn = () => {
       if (resolvedRef.current) return;
-      // ننتظر قليلاً للتأكد من أن المستخدم أغلق النافذة بنفسه ولم يتم حظرها فوراً
       settle(() =>
         Date.now() - openedAt >= 500 ? onCancel?.() : onBlocked?.(),
       );
@@ -129,10 +125,9 @@ export function TelegramLoginButton({
     window.addEventListener("focus", handleFocusReturn);
 
     try {
-      // إزالة حقل origin تماماً لحل تعارض المتصفح وتمرير الحقول الأساسية فقط
       window.Telegram.Login.auth(
         {
-          bot_id: finalBotIdNumber,
+          bot_id: finalBotId,
           request_access: "write",
           lang: locale,
         },
