@@ -23,10 +23,8 @@ declare global {
         auth: (
           options: {
             bot_id: number;
-            origin?: string;
             request_access?: string;
             lang?: string;
-            embed?: number;
           },
           callback: (user: TelegramAuthData | null) => void,
         ) => void;
@@ -35,7 +33,8 @@ declare global {
   }
 }
 
-const SCRIPT_SRC = "https://telegram.org/js/telegram-login.js?22";
+// السكريبت الأكثر استقراراً للنوافذ المنبثقة والمطابق للتوثيق الرسمي
+const SCRIPT_SRC = "https://telegram.org";
 
 type Status = "idle" | "loading";
 
@@ -61,19 +60,12 @@ export function TelegramLoginButton({
 
   const configured = telegramBotIdConfigured();
 
-  // Load the official Login widget script once. It exposes `Telegram.Login.auth`
-  // which opens the OAuth popup and delivers the signed auth payload.
   useEffect(() => {
     let cancelled = false;
 
     if (document.getElementById("telegram-login-script")) {
-      const timer = window.setTimeout(() => {
-        if (!cancelled) setScriptFailed(false);
-      }, 0);
-      return () => {
-        cancelled = true;
-        window.clearTimeout(timer);
-      };
+      if (!cancelled) setScriptFailed(false);
+      return;
     }
 
     const script = document.createElement("script");
@@ -120,30 +112,26 @@ export function TelegramLoginButton({
     };
 
     const handleFocusReturn = () => {
-      // Focus came back to our window without a result: the popup was closed.
       if (resolvedRef.current) return;
-      // A very fast return usually means the popup never opened (was blocked).
+      // ننتظر قليلاً للتأكد من أن المستخدم أغلق النافذة بنفسه ولم يتم حظرها فوراً
       settle(() =>
-        Date.now() - openedAt >= 400 ? onCancel?.() : onBlocked?.(),
+        Date.now() - openedAt >= 500 ? onCancel?.() : onBlocked?.(),
       );
     };
 
-    // If the window never loses focus, the popup was likely blocked.
     blockedTimer = window.setTimeout(() => {
       if (resolvedRef.current) return;
       if (!document.hasFocus()) return;
       settle(() => onBlocked?.());
-    }, 1500);
+    }, 2000);
 
     window.addEventListener("focus", handleFocusReturn);
 
     try {
-      // Called synchronously inside the click handler so window.open() counts
-      // as a valid user gesture (no async drift = popup blockers won't kill it).
+      // إزالة حقل origin تماماً لحل تعارض المتصفح وتمرير الحقول الأساسية فقط
       window.Telegram.Login.auth(
         {
           bot_id: finalBotIdNumber,
-          origin: window.location.origin,
           request_access: "write",
           lang: locale,
         },
@@ -158,8 +146,8 @@ export function TelegramLoginButton({
           });
         },
       );
-    } catch {
-      // A synchronous throw means the popup never opened; reset and surface it.
+    } catch (err) {
+      console.error("Telegram popup error:", err);
       settle(() => onBlocked?.());
     }
   };
