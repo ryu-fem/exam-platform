@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useLocale } from "next-intl";
-import { Loader2, Send } from "lucide-react";
-import { finalBotIdNumber } from "@/lib/config";
-import { cn } from "@/lib/utils";
 
 export interface TelegramAuthData {
   id: number;
@@ -18,154 +15,72 @@ export interface TelegramAuthData {
 
 declare global {
   interface Window {
-    Telegram?: {
-      Login?: {
-        auth: (
-          options: {
-            bot_id: number;
-            request_access?: string;
-            lang?: string;
-          },
-          callback: (user: TelegramAuthData | null) => void,
-        ) => void;
-      };
-    };
+    onTelegramAuth?: (user: TelegramAuthData) => void;
   }
 }
 
-// 🟢 هذا الرابط الصحيح والحتمي لعمل نافذة تسجيل الدخول
-const SCRIPT_SRC = "https://telegram.org";
-
-type Status = "idle" | "loading";
+// Official widget script. The widget reads the `data-*` attributes from the
+// exact same <script> element and replaces it with the Telegram-hosted button.
+const WIDGET_SCRIPT = "https://telegram.org/js/telegram-login.js";
 
 export function TelegramLoginButton({
-  label,
-  disabled,
   onAuth,
-  onCancel,
-  onBlocked,
-  onConfigError,
 }: {
-  label: string;
+  label?: string;
   disabled?: boolean;
   onAuth: (data: TelegramAuthData) => void;
   onCancel?: () => void;
   onBlocked?: () => void;
   onConfigError?: () => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const locale = useLocale();
-  const [status, setStatus] = useState<Status>("idle");
-  const [scriptFailed, setScriptFailed] = useState(false);
-  const resolvedRef = useRef(false);
 
-  // البوت دائماً مفعّل برمجياً بالرقم الثابت أو المتغير
-  const finalBotId = finalBotIdNumber || 8389871615;
+  // Keep the latest callback/locale in refs so the widget is created exactly
+  // once (mount) and never rebuilt on parent re-renders even when callers pass
+  // inline arrow functions.
+  const onAuthRef = useRef(onAuth);
+  const localeRef = useRef(locale);
+  useEffect(() => {
+    onAuthRef.current = onAuth;
+    localeRef.current = locale;
+  });
 
   useEffect(() => {
-    let cancelled = false;
+    const container = containerRef.current;
+    if (!container) return;
 
-    if (document.getElementById("telegram-login-script")) {
-      if (!cancelled) setScriptFailed(false);
-      return;
-    }
+    // Clear any previous instances to avoid duplicate widgets.
+    container.innerHTML = "";
 
+    // Global callback the widget calls on successful login.
+    window.onTelegramAuth = (user: TelegramAuthData) => {
+      if (user && user.hash) {
+        onAuthRef.current(user);
+      }
+    };
+
+    // Insert the official widget via its standard script-tag method.
     const script = document.createElement("script");
-    script.id = "telegram-login-script";
-    script.src = SCRIPT_SRC;
+    script.src = WIDGET_SCRIPT;
+    script.setAttribute("data-telegram-login", "hejqdadbot");
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-radius", "12");
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    script.setAttribute("data-request-access", "write");
+    script.setAttribute("data-lang", localeRef.current === "ar" ? "ar" : "en");
     script.async = true;
-    script.onload = () => {
-      if (!cancelled) setScriptFailed(false);
-    };
-    script.onerror = () => {
-      if (!cancelled) setScriptFailed(true);
-    };
-    document.head.appendChild(script);
+    container.appendChild(script);
 
     return () => {
-      cancelled = true;
+      delete window.onTelegramAuth;
+      container.innerHTML = "";
     };
   }, []);
 
-  const handleClick = () => {
-    // إذا فشل السكربت تماماً نقوم بتنبيه واجهة المستخدم
-    if (scriptFailed || !window.Telegram?.Login?.auth) {
-      onConfigError?.();
-      return;
-    }
-
-    resolvedRef.current = false;
-    setStatus("loading");
-
-    const openedAt = Date.now();
-    let settled = false;
-    let blockedTimer: number | undefined = undefined;
-
-    const settle = (cb: () => void) => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(blockedTimer);
-      window.removeEventListener("focus", handleFocusReturn);
-      setStatus("idle");
-      cb();
-    };
-
-    const handleFocusReturn = () => {
-      if (resolvedRef.current) return;
-      settle(() =>
-        Date.now() - openedAt >= 500 ? onCancel?.() : onBlocked?.(),
-      );
-    };
-
-    blockedTimer = window.setTimeout(() => {
-      if (resolvedRef.current) return;
-      if (!document.hasFocus()) return;
-      settle(() => onBlocked?.());
-    }, 2000);
-
-    window.addEventListener("focus", handleFocusReturn);
-
-    try {
-      window.Telegram.Login.auth(
-        {
-          bot_id: finalBotId,
-          request_access: "write",
-          lang: locale,
-        },
-        (user) => {
-          resolvedRef.current = true;
-          settle(() => {
-            if (user && typeof user.id === "number" && user.hash) {
-              onAuth(user);
-            } else {
-              onCancel?.();
-            }
-          });
-        },
-      );
-    } catch (err) {
-      console.error("Telegram popup error:", err);
-      settle(() => onBlocked?.());
-    }
-  };
-
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={disabled || status === "loading"}
-      className={cn(
-        "inline-flex h-12 w-full max-w-sm items-center justify-center gap-2.5 rounded-xl px-6 text-base font-medium text-white",
-        "bg-[#54a9eb] transition-colors duration-200 ease-in-out hover:bg-[#3a94d8]",
-        "disabled:cursor-not-allowed disabled:opacity-60",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#54a9eb]/40",
-      )}
-    >
-      {status === "loading" ? (
-        <Loader2 className="h-5 w-5 animate-spin" />
-      ) : (
-        <Send className="h-5 w-5" />
-      )}
-      {label}
-    </button>
+    <div className="flex w-full justify-center py-2">
+      <div ref={containerRef} id="telegram-widget-container" />
+    </div>
   );
 }
