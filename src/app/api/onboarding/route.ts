@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { notifyAdminNewStudent } from "@/lib/telegram-notify";
+import { verifyOnboardingToken } from "@/lib/telegram-token";
 import {
   BACCALAUREATE_ELECTIVES,
   SECTIONS,
@@ -23,8 +24,9 @@ const SYSTEM_VALUES = Array.from(
 
 const schema = z
   .object({
-    telegramId: z.string().optional(),
-    avatarUrl: z.string().optional().nullable(),
+    // NOTE: telegramId/avatarUrl are intentionally NOT accepted from the body.
+    // They must come from the signed onboarding token in the Authorization
+    // header so an unauthenticated caller cannot claim an arbitrary Telegram id.
     name: z.string().trim().min(2, "Name must be at least 2 characters"),
     username: z
       .string()
@@ -135,6 +137,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Registration is Telegram-first only: the caller must present the signed
+    // token issued by /api/auth/telegram after a successful widget check.
+    const token = (req.headers.get("authorization") ?? "")
+      .replace(/^Bearer\s+/i, "")
+      .trim();
+    const telegram = token ? verifyOnboardingToken(token) : null;
+    if (!telegram) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Telegram verification is required to register. Please sign in with Telegram again.",
+        },
+        { status: 401 },
+      );
+    }
+
     const data = parsed.data;
     const isBaccalaureate = data.system === "baccalaureate";
     const profileFields = {
@@ -159,9 +177,11 @@ export async function POST(req: NextRequest) {
 
     let user;
 
-    if (data.telegramId) {
+    const telegramId = telegram.telegramId;
+    const avatarUrl = telegram.photoUrl ?? null;
+    {
       const existing = await prisma.user.findUnique({
-        where: { telegramId: data.telegramId },
+        where: { telegramId },
       });
 
       if (existing && existing.status === "active") {
@@ -172,32 +192,21 @@ export async function POST(req: NextRequest) {
       }
 
       user = await prisma.user.upsert({
-        where: { telegramId: data.telegramId },
+        where: { telegramId },
         update: {
           name: data.name,
           username: data.username,
           passwordHash,
-          ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
+          ...(avatarUrl ? { avatarUrl } : {}),
           ...profileFields,
           status: "pending",
         },
         create: {
-          telegramId: data.telegramId,
+          telegramId,
           name: data.name,
           username: data.username,
           passwordHash,
-          ...(data.avatarUrl ? { avatarUrl: data.avatarUrl } : {}),
-          ...profileFields,
-          status: "pending",
-          role: "student",
-        },
-      });
-    } else {
-      user = await prisma.user.create({
-        data: {
-          name: data.name,
-          username: data.username,
-          passwordHash,
+          ...(avatarUrl ? { avatarUrl } : {}),
           ...profileFields,
           status: "pending",
           role: "student",

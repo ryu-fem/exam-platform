@@ -20,6 +20,8 @@ type ApiResponse = {
   action?: "signin" | "onboarding" | "redirect";
   target?: string;
   telegramId?: string;
+  token?: string;
+  profile?: { name?: string; username?: string; photoUrl?: string };
   error?: string;
 };
 
@@ -112,7 +114,31 @@ function LoginContent() {
         return;
       }
 
-      if (json.action === "onboarding" || json.action === "redirect") {
+      if (json.action === "onboarding") {
+        // Resume the registration wizard with the token the server just issued.
+        if (json.token) {
+          try {
+            window.sessionStorage.setItem(
+              "telegram_onboarding_token",
+              json.token,
+            );
+            window.sessionStorage.setItem(
+              "telegram_onboarding_profile",
+              JSON.stringify({
+                name: json.profile?.name ?? "",
+                username: json.profile?.username ?? "",
+                photoUrl: json.profile?.photoUrl ?? "",
+              }),
+            );
+          } catch {
+            // ignore — storage is a convenience, not a requirement
+          }
+        }
+        router.push("/register");
+        return;
+      }
+
+      if (json.action === "redirect") {
         router.push(json.target!);
         return;
       }
@@ -146,7 +172,13 @@ function LoginContent() {
                     {t("signingIn")}
                   </div>
                 ) : (
-                  <TelegramLoginButton onAuth={(d) => void handleTelegram(d)} />
+                  <TelegramLoginButton
+                    label={t("telegramLogIn")}
+                    onAuth={(d) => void handleTelegram(d)}
+                    onCancel={() => setError(t("telegramPopupCancelled"))}
+                    onBlocked={() => setError(t("telegramPopupBlocked"))}
+                    onConfigError={() => setError(t("telegramNotConfigured"))}
+                  />
                 )}
               </div>
 

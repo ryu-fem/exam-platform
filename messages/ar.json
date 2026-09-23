@@ -284,7 +284,22 @@
     "orLower": "أو",
     "continueWithoutTelegram": "المتابعة بدون تيليجرام",
     "telegramNotConfigured": "تسجيل الدخول عبر تيليجرام غير مفعّل بعد",
-    "loginWithTelegram": "المتابعة بتليجرام"
+    "loginWithTelegram": "المتابعة بتليجرام",
+    "telegramLogIn": "سجل الدخول بتليجرام",
+    "telegramPopupCancelled": "تم إلغاء تسجيل الدخول. جرّب مرة أخرى.",
+    "telegramPopupBlocked": "تعذّر فتح نافذة تيليجرام. تأكد من السماح بالنوافذ المنبثقة ثم أعد المحاولة.",
+    "telegramAuthRequired": "سجّل الدخول بتليجرام أولًا لتتمكن من إنشاء الحساب.",
+    "registerStepTitle": "أنشئ حسابك الآن",
+    "registerStepSubtitle": "سجل دخول على التليجرام عشان نكمل عملية انشاء الحساب",
+    "accountStepTitle": "أكمل بياناتك",
+    "accountStepSubtitle": "بيانات الدخول بتاعة حسابك — الاسم واسم المستخدم وكلمة المرور.",
+    "stepOne": "الخطوة الأولى",
+    "stepTwo": "الخطوة الثانية",
+    "stepThree": "الخطوة الثالثة",
+    "nextStep": "التالي",
+    "backStep": "رجوع",
+    "haveAccountLogin": "يوجد لديك حساب بالفعل؟ ادخل إلى حسابك الآن!",
+    "createAccountCta": "إنشاء الحساب"
   },
   "common": {
     "appName": "منصة الاختبارات",

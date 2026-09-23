@@ -284,7 +284,22 @@
     "orLower": "or",
     "continueWithoutTelegram": "Continue without Telegram",
     "telegramNotConfigured": "Login with Telegram is not configured yet",
-    "loginWithTelegram": "Continue with Telegram"
+    "loginWithTelegram": "Continue with Telegram",
+    "telegramLogIn": "Log in with Telegram",
+    "telegramPopupCancelled": "Login cancelled. Please try again.",
+    "telegramPopupBlocked": "Couldn't open Telegram. Allow pop-ups and try again.",
+    "telegramAuthRequired": "You must sign in with Telegram first to create your account.",
+    "registerStepTitle": "Create your account now",
+    "registerStepSubtitle": "Sign in with Telegram so we can finish creating your account",
+    "accountStepTitle": "Complete your details",
+    "accountStepSubtitle": "Your account login details — full name, username and password.",
+    "stepOne": "Step 1",
+    "stepTwo": "Step 2",
+    "stepThree": "Step 3",
+    "nextStep": "Next",
+    "backStep": "Back",
+    "haveAccountLogin": "Already have an account? Log in now!",
+    "createAccountCta": "Create account"
   },
   "common": {
     "appName": "Exam Platform",
