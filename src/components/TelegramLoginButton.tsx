@@ -17,45 +17,65 @@ type Props = {
 };
 
 /**
- * Official Telegram Login Widget (native script embed). The widget button is
- * rendered in-place by telegram-login.js; the callback is exposed on
- * `window.onTelegramAuth` exactly as the widget expects. The raw payload is
- * sent to the server which re-verifies the signature.
+ * Official, native Telegram Login Button rendered by Telegram's widget script
+ * (telegram-widget.js). The widget anchors on a `script[data-telegram-login]`
+ * tag and injects its official iframe in its place, so we append the script
+ * synchronously into a dedicated ref-owned container inside `useEffect`.
+ *
+ * The raw payload is sent to the server (/api/auth/telegram) which re-verifies
+ * the HMAC signature — the client is never trusted silently.
  */
 export function TelegramLoginButton({ onAuth }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const onAuthRef = useRef(onAuth);
   const locale = useLocale();
 
+  // Keep the callback fresh without re-mounting the widget: parents pass inline
+  // arrows whose identity changes every render, and re-running the script
+  // append on each render is what makes the button disappear.
   useEffect(() => {
     onAuthRef.current = onAuth;
   }, [onAuth]);
 
   useEffect(() => {
-    window.onTelegramAuth = (user) => {
-      onAuthRef.current(user);
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Clear previous instances to prevent duplicates or rendering bugs.
+    container.innerHTML = "";
+
+    // Expose the global function Telegram expects to invoke on approval.
+    window.onTelegramAuth = (user: TelegramAuthData) => {
+      if (user && user.hash) {
+        onAuthRef.current(user);
+      }
     };
 
-    const container = containerRef.current;
-    if (container) {
-      container.innerHTML = "";
-      const widget = document.createElement("div");
-      container.appendChild(widget);
+    // Create and configure the official synchronous widget script.
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.async = true;
+    script.setAttribute("data-telegram-login", TELEGRAM_BOT_USERNAME);
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-radius", "12");
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    script.setAttribute("data-request-access", "write");
+    script.setAttribute("data-lang", locale.startsWith("ar") ? "ar" : "en");
 
-      const script = document.createElement("script");
-      script.src = "https://telegram.org/js/telegram-login.js";
-      script.async = true;
-      script.dataset.telegramLogin = TELEGRAM_BOT_USERNAME;
-      script.dataset.size = "large";
-      script.dataset.radius = "10";
-      script.dataset.lang = locale.startsWith("ar") ? "ar" : "en";
-      widget.appendChild(script);
-    }
+    // Append directly to our container ref so the widget's iframe renders
+    // exactly where it belongs.
+    container.appendChild(script);
 
     return () => {
+      container.innerHTML = "";
       window.onTelegramAuth = undefined;
     };
   }, [locale]);
 
-  return <div ref={containerRef} className="flex justify-center" />;
+  return (
+    <div className="flex w-full min-h-[50px] items-center justify-center py-4">
+      {/* Official Telegram Widget Container Anchor */}
+      <div ref={containerRef} />
+    </div>
+  );
 }

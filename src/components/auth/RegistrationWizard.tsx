@@ -523,8 +523,8 @@ export function RegistrationWizard() {
                     </p>
                   </div>
 
-                  {globalError && <ErrorBanner>{globalError}</ErrorBanner>}
-
+                  {/* Step 1 description ends above — the official native
+                      Telegram button is anchored directly below it. */}
                   {telegramToken && telegramProfile ? (
                     <>
                       <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-muted px-4 py-3">
@@ -603,6 +603,8 @@ export function RegistrationWizard() {
                       </p>
                     </>
                   )}
+
+                  {globalError && <ErrorBanner>{globalError}</ErrorBanner>}
                 </div>
               ) : step === STEPS[1] ? (
                 <>
