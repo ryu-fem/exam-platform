@@ -91,8 +91,8 @@ Requests panel.
 
 | Config | Value |
 | --- | --- |
-| Bot username | `hejqdadbot` |
-| `TELEGRAM_BOT_TOKEN` | `8389871615:AAF…` from @BotFather |
+| Bot username | `ksadjefjwbot` |
+| `TELEGRAM_BOT_TOKEN` | `8981873187:AAF…` from @BotFather |
 | `NEXTAUTH_URL` / `APP_URL` | `https://exam-platform-one-omega.vercel.app` |
 | Webhook domain | `exam-platform-one-omega.vercel.app` |
 
