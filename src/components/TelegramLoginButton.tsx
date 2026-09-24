@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useLocale } from "next-intl";
 
 export interface TelegramAuthData {
   id: number;
@@ -19,10 +18,6 @@ declare global {
   }
 }
 
-// Official widget script. The widget reads the `data-*` attributes from the
-// exact same <script> element and replaces it with the Telegram-hosted button.
-const WIDGET_SCRIPT = "https://telegram.org/js/telegram-login.js";
-
 export function TelegramLoginButton({
   onAuth,
 }: {
@@ -34,53 +29,44 @@ export function TelegramLoginButton({
   onConfigError?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const locale = useLocale();
-
-  // Keep the latest callback/locale in refs so the widget is created exactly
-  // once (mount) and never rebuilt on parent re-renders even when callers pass
-  // inline arrow functions.
-  const onAuthRef = useRef(onAuth);
-  const localeRef = useRef(locale);
-  useEffect(() => {
-    onAuthRef.current = onAuth;
-    localeRef.current = locale;
-  });
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    if (!containerRef.current) return;
 
-    // Clear any previous instances to avoid duplicate widgets.
-    container.innerHTML = "";
+    // 1. Force wipe the internal HTML to clean up any leaking React state or duplicate triggers
+    containerRef.current.innerHTML = "";
 
-    // Global callback the widget calls on successful login.
+    // 2. Bind the globally required authorization callback invoked directly by Telegram's runtime
     window.onTelegramAuth = (user: TelegramAuthData) => {
       if (user && user.hash) {
-        onAuthRef.current(user);
+        onAuth(user);
       }
     };
 
-    // Insert the official widget via its standard script-tag method.
+    // 3. Construct and mount the official synchronous Telegram widget script tag.
+    //    The URL MUST be the widget script (telegram-login.js) — a bare
+    //    "<https://telegram.org>" src never loads, and the button disappears.
     const script = document.createElement("script");
-    script.src = WIDGET_SCRIPT;
+    script.src = "https://telegram.org/js/telegram-login.js";
     script.setAttribute("data-telegram-login", "hejqdadbot");
     script.setAttribute("data-size", "large");
     script.setAttribute("data-radius", "12");
     script.setAttribute("data-onauth", "onTelegramAuth(user)");
     script.setAttribute("data-request-access", "write");
-    script.setAttribute("data-lang", localeRef.current === "ar" ? "ar" : "en");
+    script.setAttribute("data-lang", "ar");
     script.async = true;
-    container.appendChild(script);
+
+    containerRef.current.appendChild(script);
 
     return () => {
+      // Cleanup global binding on unmount
       delete window.onTelegramAuth;
-      container.innerHTML = "";
     };
-  }, []);
+  }, [onAuth]);
 
   return (
-    <div className="flex w-full justify-center py-2">
-      <div ref={containerRef} id="telegram-widget-container" />
+    <div className="flex w-full justify-center items-center py-4">
+      <div ref={containerRef} />
     </div>
   );
 }
