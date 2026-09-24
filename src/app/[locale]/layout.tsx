@@ -8,6 +8,7 @@ import { Cairo, Inter } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import { Footer } from "@/components/Footer";
 import { PageFade } from "@/components/PageFade";
+import { Toaster } from "@/components/ui/Toaster";
 import { routing } from "@/i18n/routing";
 import { getDir } from "@/lib/locale";
 import "../globals.css";
@@ -82,6 +83,7 @@ export default async function LocaleLayout({
             </PageFade>
           </NextIntlClientProvider>
         </Providers>
+        <Toaster />
       </body>
     </html>
   );

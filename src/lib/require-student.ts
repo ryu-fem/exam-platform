@@ -22,13 +22,9 @@ export async function requireStudentUser() {
 
   if (!user) localizedRedirect({ href: "/login", locale });
 
-  if (user.role !== "admin" && user.status === "pending") {
-    localizedRedirect({
-      href: user.verification ? "/pending" : "/verify",
-      locale,
-    });
-  }
-
+  // PENDING students get full read/browse access (guest mode). They are only
+  // kept out of the pages that are genuinely not allowed: rejected/inactive
+  // accounts must still go through /verify.
   if (user.role !== "admin" && user.status === "rejected") {
     localizedRedirect({ href: "/verify", locale });
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import { Clock3, Flag, LayoutGrid, ListChecks, Send } from "lucide-react";
 
@@ -11,6 +12,7 @@ import { Modal } from "@/components/ui/Modal";
 import type { SafeQuestion } from "@/lib/quiz-engine";
 import { getSubjectLabel } from "@/lib/quiz-data";
 import { cn } from "@/lib/utils";
+import { showToast } from "@/lib/toast";
 
 type Props = {
   quizId: string;
@@ -39,8 +41,10 @@ export function QuizRunner({
   questions,
 }: Props) {
   const t = useTranslations("quizzes");
+  const tc = useTranslations("common");
   const locale = useLocale() as "en" | "ar";
   const router = useRouter();
+  const { data: session } = useSession();
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [flagged, setFlagged] = useState<Record<string, boolean>>({});
@@ -102,6 +106,12 @@ export function QuizRunner({
   }, []);
 
   const doSubmit = useCallback(async () => {
+    // Read-only guest mode: PENDING accounts cannot submit attempts. The API
+    // enforces this too, but fail fast with a friendly toast.
+    if (session?.user?.status === "pending") {
+      showToast(tc("pendingReadOnlyToast"));
+      return;
+    }
     if (submittedRef.current) return;
     submittedRef.current = true;
     setSubmitting(true);
@@ -144,7 +154,7 @@ export function QuizRunner({
       setConfirmOpen(false);
       setTimeUp(false);
     }
-  }, [quizId, answers, router, storageKey]);
+  }, [quizId, answers, router, storageKey, session?.user?.status, tc]);
 
   // Countdown timer. Auto-submits when time runs out.
   useEffect(() => {

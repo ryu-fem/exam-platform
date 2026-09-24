@@ -12,8 +12,15 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Label } from "@/components/ui/Field";
 import { Alert, ErrorBanner } from "@/components/ui/Alert";
+import { AvatarZoom } from "@/components/admin/AvatarZoom";
 import { cn } from "@/lib/utils";
 import { YEARS } from "@/lib/curriculum";
+import {
+  electiveLabel,
+  sectionLabel,
+  systemLabel,
+  trackLabel,
+} from "@/lib/labels";
 
 type PendingStudent = {
   id: string;
@@ -21,7 +28,12 @@ type PendingStudent = {
   username: string;
   telegramId: string | null;
   year: string;
+  system: string | null;
+  section: string | null;
+  track: string | null;
+  electiveSubject: string | null;
   avatarUrl: string | null;
+  createdAt: string;
   verification: {
     channelScreenshot: string;
     groupScreenshot: string;
@@ -54,6 +66,28 @@ const FIELD_LABELS: Record<string, string> = {
 function yearLabel(value: string, locale: string) {
   const y = YEARS.find((item) => item.value === value);
   return y ? (locale === "ar" ? y.label.ar : y.label.en) : value;
+}
+
+function formatDate(value: string | null | undefined, locale: string) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
+    dateStyle: "medium",
+  }).format(date);
+}
+
+function detailValue(
+  label: string,
+  value: string | null | undefined,
+  fallback = "—",
+) {
+  return (
+    <div>
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="mt-0.5 font-medium">{value || fallback}</dd>
+    </div>
+  );
 }
 
 export function RequestsPanel() {
@@ -205,15 +239,7 @@ export function RequestsPanel() {
             {students.map((student) => (
               <Card key={student.id} className="flex items-center justify-between gap-3 p-4">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border bg-surface-muted">
-                    {student.avatarUrl ? (
-                      <Image src={student.avatarUrl} alt="" fill unoptimized className="object-cover" />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-muted">
-                        {student.name.slice(0, 1)}
-                      </span>
-                    )}
-                  </div>
+                  <AvatarZoom src={student.avatarUrl} name={student.name} />
                   <div className="min-w-0">
                     <p className="truncate font-medium">{student.name}</p>
                     <p className="truncate text-xs text-muted">
@@ -281,6 +307,64 @@ export function RequestsPanel() {
       >
         {selectedStudent && (
           <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <AvatarZoom
+                src={selectedStudent.avatarUrl}
+                name={selectedStudent.name}
+                className="h-14 w-14"
+              />
+              <div className="min-w-0">
+                <p className="truncate text-lg font-semibold">
+                  {selectedStudent.name}
+                  <Badge className="ms-2" variant="warning">
+                    {t("statusPending")}
+                  </Badge>
+                </p>
+                <p className="mt-0.5 truncate text-sm text-muted">
+                  @{selectedStudent.username}
+                </p>
+                <p className="mt-0.5 truncate text-xs text-muted">
+                  {t("dtTelegram")}{" "}
+                  <span dir="ltr">{selectedStudent.telegramId ?? "—"}</span>
+                </p>
+              </div>
+            </div>
+
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border border-border bg-surface-muted p-4">
+              {detailValue(t("dtFullName"), selectedStudent.name)}
+              {detailValue(t("dtUsername"), selectedStudent.username)}
+              {detailValue(
+                t("dtYear"),
+                yearLabel(selectedStudent.year, locale),
+              )}
+              {detailValue(
+                t("dtSystem"),
+                systemLabel(selectedStudent.system, locale as "en" | "ar"),
+              )}
+              {selectedStudent.system === "baccalaureate"
+                ? detailValue(
+                    t("dtTrack"),
+                    trackLabel(selectedStudent.track, locale as "en" | "ar"),
+                  )
+                : detailValue(
+                    t("dtSection"),
+                    sectionLabel(selectedStudent.section, locale as "en" | "ar"),
+                  )}
+              {selectedStudent.system === "baccalaureate" &&
+                detailValue(
+                  t("dtElective"),
+                  electiveLabel(selectedStudent.electiveSubject, locale as "en" | "ar"),
+                )}
+              {detailValue(
+                t("dtTelegram"),
+                selectedStudent.telegramId ?? "—",
+              )}
+              {detailValue(
+                t("dtRegisteredAt"),
+                formatDate(selectedStudent.createdAt, locale),
+              )}
+            </dl>
+
             <div className="grid grid-cols-2 gap-3">
               <Screenshot label={t("channelProof")} src={selectedStudent.verification?.channelScreenshot} />
               <Screenshot label={t("groupProof")} src={selectedStudent.verification?.groupScreenshot} />

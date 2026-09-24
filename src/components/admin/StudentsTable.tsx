@@ -21,6 +21,7 @@ import {
   BACCALAUREATE_TRACKS,
 } from "@/lib/curriculum";
 import { getSubjectLabel } from "@/lib/quiz-data";
+import { AvatarZoom } from "@/components/admin/AvatarZoom";
 
 type Verification = {
   channelScreenshot: string;
@@ -71,6 +72,15 @@ function trackLabel(value: string | null, locale: string) {
   if (!value) return "—";
   const found = BACCALAUREATE_TRACKS.find((item) => item.value === value);
   return found ? (locale === "ar" ? found.label.ar : found.label.en) : value;
+}
+
+function formatDate(value: string | null | undefined, locale: string) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
+    dateStyle: "medium",
+  }).format(date);
 }
 
 function statusVariant(status: string): "success" | "danger" | "warning" {
@@ -271,15 +281,12 @@ export function StudentsTable() {
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border bg-surface-muted">
-                          {student.avatarUrl ? (
-                            <Image src={student.avatarUrl} alt="" fill unoptimized className="object-cover" />
-                          ) : (
-                            <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-muted">
-                              {student.name.slice(0, 1)}
-                            </span>
-                          )}
-                        </div>
+                        <AvatarZoom
+                          src={student.avatarUrl}
+                          name={student.name}
+                          className="h-9 w-9"
+                          initialClassName="text-xs"
+                        />
                         <div className="min-w-0">
                           <p className="truncate font-medium">{student.name}</p>
                           <p className="truncate text-xs text-muted">@{student.username}</p>
@@ -333,15 +340,12 @@ export function StudentsTable() {
         {selected && (
           <div className="space-y-5">
             <div className="flex items-center gap-4">
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-border bg-surface-muted">
-                {selected.avatarUrl ? (
-                  <Image src={selected.avatarUrl} alt="" fill unoptimized className="object-cover" />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center text-lg font-semibold text-muted">
-                    {selected.name.slice(0, 1)}
-                  </span>
-                )}
-              </div>
+              <AvatarZoom
+                src={selected.avatarUrl}
+                name={selected.name}
+                className="h-16 w-16"
+                initialClassName="text-lg"
+              />
               <div>
                 <p className="font-semibold">{selected.name}</p>
                 <p className="text-sm text-muted">@{selected.username}</p>
@@ -363,6 +367,10 @@ export function StudentsTable() {
               <Detail
                 label={t("dtStatus")}
                 value={<Badge variant={statusVariant(selected.status)}>{t(statusKey(selected.status))}</Badge>}
+              />
+              <Detail
+                label={t("dtRegisteredAt")}
+                value={formatDate(selected.createdAt, locale)}
               />
             </dl>
 

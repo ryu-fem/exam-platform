@@ -27,6 +27,10 @@
     "noScreenshots": "بدون لقطات",
     "dtUsername": "اسم المستخدم",
     "dtTelegram": "تيليجرام",
+    "dtFullName": "الاسم الكامل",
+    "dtRegisteredAt": "تاريخ التسجيل",
+    "zoomAvatar": "عرض صورة {name}",
+    "avatarPreview": "معاينة الصورة الشخصية",
     "dtGrade": "الصف",
     "dtSystem": "النظام",
     "dtTrack": "المسار",
@@ -283,7 +287,15 @@
     "nextStep": "التالي",
     "backStep": "رجوع",
     "haveAccountLogin": "يوجد لديك حساب بالفعل؟ ادخل إلى حسابك الآن!",
-    "createAccountCta": "إنشاء الحساب"
+    "createAccountCta": "إنشاء الحساب",
+    "telegramAuthFailed": "فشل تسجيل الدخول عبر تيليجرام. حاول مرة أخرى.",
+    "telegramAuthDenied": "تم إلغاء تسجيل الدخول عبر تيليجرام. حاول مرة أخرى.",
+    "verifying": "جارٍ التحقق من تيليجرام…",
+    "registerStepTitle": "إنشاء حسابك",
+    "registerStepSubtitle": "سجّل الدخول عبر تيليجرام لمتابعة التسجيل",
+    "stepThree": "الخطوة الثالثة",
+    "orDivider": "أو",
+    "telegramSessionExpired": "انتهت صلاحية التحقق عبر تيليجرام. سجّل الدخول عبر تيليجرام مرة أخرى."
   },
   "common": {
     "appName": "منصة الاختبارات",
@@ -299,7 +311,8 @@
     "errorSomething": "حدث خطأ ما.",
     "aiShort": "ذكاء اصطناعي",
     "toggleDarkMode": "تبديل الوضع الليلي",
-    "language": "اللغة"
+    "language": "اللغة",
+    "pendingReadOnlyToast": "حسابك في انتظار موافقة الإدارة. يمكنك التصفح فقط حالياً"
   },
   "dashboard": {
     "welcomeBack": "مرحبًا بعودتك",
@@ -320,7 +333,9 @@
     "analyzing": "بنتحلّل نتائجك…",
     "noDataYet": "لسه مخلصتش أي اختبار لحد دلوقتي. خلّص أول اختبار وهتلاقي تقريرك هنا.",
     "aiError": "تعذر توليد التحليل حاليًا. حاول تاني.",
-    "regenerate": "إعادة التوليد"
+    "regenerate": "إعادة التوليد",
+    "pendingBanner": "حسابك في انتظار موافقة الإدارة. يمكنك تصفح المنصة، لكن المزايا التفاعلية متوقفة مؤقتًا.",
+    "verifyNow": "أكمل التحقق ←"
   },
   "home": {
     "badge": "المنصة الموحدة للثانوية",
@@ -426,6 +441,9 @@
     "backToHome": "العودة للرئيسية",
     "title": "إنشاء الحساب واختيار المسار",
     "subtitleNoTelegram": "أنشئ حسابك واختر مسارك الدراسي.",
+    "subtitleWithTelegram": "سجّل الدخول عبر تيليجرام، ثم أكمل بياناتك.",
+    "telegramLinked": "تم ربط تيليجرام بنجاح",
+    "relinkTelegram": "إعادة ربط تيليجرام",
     "fullName": "الاسم الكامل *",
     "fullNamePlaceholder": "الاسم الكامل",
     "username": "اسم المستخدم *",

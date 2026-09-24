@@ -34,22 +34,17 @@ export const authOptions: NextAuthOptions = {
           if (!valid) return null;
 
           // Admins are always allowed in (the seed creates them as "active").
+          // PENDING students are allowed in too, but in read-only "guest"
+          // mode: they can log in and browse, while interactive features are
+          // gated client-side and on the API routes. Only rejected or
+          // unknown-status accounts are blocked.
           if (user.role !== "admin") {
-            if (user.status === "pending") {
-              // A pending account that already submitted its screenshots is
-              // truly "awaiting approval" — tell the user instead of signing
-              // them in. New signups (no verification yet) may still log in so
-              // they can reach /verify to upload their proof.
-              if (user.verification) {
-                throw new Error(
-                  "Your account is pending admin approval. Please check back later.",
-                );
-              }
-            } else if (user.status === "rejected") {
+            if (user.status === "rejected") {
               throw new Error(
                 "Your account was rejected. Please contact support.",
               );
-            } else if (user.status !== "active") {
+            }
+            if (user.status !== "active" && user.status !== "pending") {
               throw new Error("Your account is not active.");
             }
           }
@@ -72,8 +67,7 @@ export const authOptions: NextAuthOptions = {
           // to a generic "invalid credentials" instead of leaking internals.
           if (
             error instanceof Error &&
-            (error.message.includes("pending admin approval") ||
-              error.message.includes("was rejected") ||
+            (error.message.includes("was rejected") ||
               error.message === "Your account is not active.")
           ) {
             throw error;
@@ -83,6 +77,44 @@ export const authOptions: NextAuthOptions = {
             credentials.username,
             error,
           );
+          return null;
+        }
+      },
+    }),
+    CredentialsProvider({
+      id: "telegram",
+      name: "Telegram",
+      credentials: {},
+      async authorize(credentials) {
+        const telegramId = (credentials as { telegramId?: string } | null)
+          ?.telegramId;
+        if (!telegramId) return null;
+
+        try {
+          const user = await prisma.user.findUnique({
+            where: { telegramId },
+          });
+          // Session-only sign-in for existing accounts that already proved
+          // ownership of this telegram id via the server-side widget check
+          // (/api/auth/telegram). Pending/rejected accounts are redirected
+          // by that route instead of signing in here.
+          if (!user) return null;
+          if (user.role !== "admin" && user.status !== "active") return null;
+
+          return {
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            telegramId: user.telegramId ?? undefined,
+            role: user.role,
+            status: user.status,
+            year: user.year,
+            system: user.system ?? undefined,
+            track: user.track ?? undefined,
+            electiveSubject: user.electiveSubject ?? undefined,
+          };
+        } catch (error) {
+          console.error("Telegram authorize error:", error);
           return null;
         }
       },

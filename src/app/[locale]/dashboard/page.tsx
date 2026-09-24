@@ -6,6 +6,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { StudentNavbar } from "@/components/StudentNavbar";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Link } from "@/i18n/navigation";
 import {
   electiveLabel,
   systemLabel,
@@ -128,6 +129,22 @@ export default async function DashboardPage() {
             </Badge>
           </div>
         </header>
+
+        {user.role !== "admin" && user.status === "pending" && (
+          <div className="mt-5 rounded-xl border border-warning/20 bg-warning-muted px-4 py-3.5 text-sm text-warning">
+            <p className="font-medium">{t("pendingBanner")}</p>
+            {!user.verification && (
+              <p className="mt-1 text-xs opacity-90">
+                <Link
+                  href="/verify"
+                  className="font-semibold underline-offset-4 hover:underline"
+                >
+                  {t("verifyNow")}
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-10">
           <Suspense fallback={<SkeletonQuote />}>

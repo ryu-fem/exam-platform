@@ -4,7 +4,6 @@ import {
   Clock3,
   Eye,
   ListChecks,
-  ScanLine,
   Sparkles,
   Zap,
 } from "lucide-react";
@@ -15,6 +14,7 @@ import { Link } from "@/i18n/navigation";
 import { StudentNavbar } from "@/components/StudentNavbar";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { QuizStartButton } from "@/components/quiz/QuizStartButton";
 import { buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { getSubjectLabel } from "@/lib/quiz-data";
@@ -160,16 +160,11 @@ export default async function QuizConfirmPage({ params }: Props) {
         )}
 
         {canStart && (
-          <Link
-            href={`/quizzes/${subject}/${quiz.id}/take`}
-            className={cn(
-              buttonVariants({ variant: "primary", size: "lg" }),
-              "mt-6 w-full",
-            )}
-          >
-            <ScanLine className="h-4 w-4" />
-            {t("startQuiz")}
-          </Link>
+          <QuizStartButton
+            subject={subject}
+            quizId={quiz.id}
+            isPending={user.status === "pending"}
+          />
         )}
       </main>
     </>

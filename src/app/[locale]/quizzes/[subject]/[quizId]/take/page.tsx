@@ -25,6 +25,13 @@ export default async function TakeQuizPage({ params }: Props) {
   });
   if (!quiz || quiz.subject !== subject) notFound();
 
+  // Read-only guest mode: PENDING accounts may browse the quiz page but cannot
+  // enter the exam runner — redirect back where the disabled start button and
+  // its toast explain why.
+  if (user.status !== "active") {
+    redirect({ href: `/quizzes/${subject}/${quiz.id}`, locale });
+  }
+
   const existing = await prisma.quizAttempt.findFirst({
     where: { userId: user.id, quizId: quiz.id },
     select: { id: true },

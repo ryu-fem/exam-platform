@@ -62,7 +62,8 @@ Open [http://localhost:3000](http://localhost:3000) — the default locale is Ar
 | Variable | Required | Description |
 | --- | --- | --- |
 | `DATABASE_URL` / `DIRECT_URL` | ✅ | PostgreSQL connection strings |
-| `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from [@BotFather](https://t.me/BotFather) — used for **bot notifications** and the `/api/telegram/webhook` route |
+| `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from [@BotFather](https://t.me/BotFather) — used for **bot notifications**, `/api/telegram/webhook`, and server-side verification of the **Telegram Login Widget** signature |
+| `NEXT_PUBLIC_TELEGRAM_BOT_ID` / `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | ✅ | Bot id + username — inlined at build time to render the Telegram Login Widget (Step 1 of registration) |
 | `TELEGRAM_ADMIN_ID` | ✅ | Telegram user id that receives notifications |
 | `NEXTAUTH_SECRET` | ✅ | Used to sign sessions |
 | `NEXTAUTH_URL` | ✅ | Canonical site URL |
@@ -75,9 +76,16 @@ Open [http://localhost:3000](http://localhost:3000) — the default locale is Ar
 ## 🤖 Telegram bot setup (BotFather)
 
 The bot is used for **admin/student notifications** (account approved, quiz
-attempt approved, etc.) and the `/api/telegram/webhook` magic-link flow. Telegram
-OAuth **login is not used** — accounts are created with username/password and are
-optionally linked to a Telegram chat (`telegramId`) later by an admin.
+attempt approved, etc.) and the `/api/telegram/webhook` magic-link flow.
+
+It also powers the **Telegram Login Widget**: registration starts on Step 1
+(10% progress) with a Telegram login, the signed widget payload is re-verified
+server-side at `/api/auth/telegram`, and first-time users receive a short-lived
+(15 min) signing token that `/api/onboarding` consumes — the `telegramId` and
+`avatarUrl` are locked server-side from that token and are never accepted from
+the request body. New accounts are created as `pending` and get **read-only
+guest** access (browse + see results only) until an admin approves them in the
+Requests panel.
 
 ### Current verified bot credentials (production)
 

@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { notifyAdminNewStudent } from "@/lib/telegram-notify";
+import { verifyOnboardingToken } from "@/lib/telegram-token";
 import {
   BACCALAUREATE_ELECTIVES,
   SECTIONS,
@@ -132,8 +133,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Registration is open to anyone: the form fields are the only source of
-    // identity and are validated below.
+    // Registration is Telegram-first only: the caller must present the signed
+    // onboarding token issued by /api/auth/telegram after a successful widget
+    // check. The telegramId/telegram username/photoUrl locked inside that token
+    // are used below and are NEVER accepted from the request body.
+    const secret = process.env.NEXTAUTH_SECRET ?? "";
+    const authHeader = (request.headers.get("authorization") ?? "")
+      .replace(/^Bearer\s+/i, "")
+      .trim();
+    const telegram = verifyOnboardingToken(authHeader, secret);
+    if (!telegram) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Telegram verification is required to register. Please sign in with Telegram again.",
+          code: "telegram_required",
+        },
+        { status: 401 },
+      );
+    }
+
     const data = parsed.data;
     const isBaccalaureate = data.system === "baccalaureate";
     const profileFields = {
@@ -144,23 +164,37 @@ export async function POST(request: Request) {
       electiveSubject: isBaccalaureate ? (data.electiveSubject ?? null) : null,
     };
 
-    const usernameTaken = await prisma.user.findUnique({
-      where: { username: data.username },
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    const avatarUrl = telegram.photoUrl ?? null;
+
+    const existing = await prisma.user.findUnique({
+      where: { telegramId: telegram.telegramId },
     });
-    if (usernameTaken) {
+    if (existing && existing.status === "active") {
       return NextResponse.json(
-        { ok: false, error: "This username is already taken.", issues: { username: ["This username is already taken."] } },
+        { ok: false, error: "This Telegram account is already registered." },
         { status: 409 },
       );
     }
 
-    const passwordHash = await bcrypt.hash(data.password, 10);
-
-    const user = await prisma.user.create({
-      data: {
+    // Upsert keyed on telegramId so a partial/abandoned signup can be resumed
+    // without leaving an orphaned row behind.
+    const user = await prisma.user.upsert({
+      where: { telegramId: telegram.telegramId },
+      update: {
         name: data.name,
         username: data.username,
         passwordHash,
+        ...(avatarUrl ? { avatarUrl } : {}),
+        ...profileFields,
+        status: "pending",
+      },
+      create: {
+        telegramId: telegram.telegramId,
+        name: data.name,
+        username: data.username,
+        passwordHash,
+        ...(avatarUrl ? { avatarUrl } : {}),
         ...profileFields,
         status: "pending",
         role: "student",
@@ -178,12 +212,25 @@ export async function POST(request: Request) {
       user: { id: user.id, username: user.username },
     });
   } catch (error) {
-    // Unique constraint violation (username) — most likely a race between the
-    // pre-check above and the actual insert.
+    // Unique constraint violation (username or telegramId) — most likely a
+    // race between the pre-checks and the actual upsert.
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
+      const target = Array.isArray(error.meta?.target)
+        ? (error.meta.target as string[])
+        : [];
+      if (target.includes("telegramId")) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "This Telegram account is already registered.",
+            issues: { telegramId: ["This Telegram account is already registered."] },
+          },
+          { status: 409 },
+        );
+      }
       return NextResponse.json(
         {
           ok: false,

@@ -27,6 +27,10 @@
     "noScreenshots": "No screenshots",
     "dtUsername": "Username",
     "dtTelegram": "Telegram",
+    "dtFullName": "Full Name",
+    "dtRegisteredAt": "Registered",
+    "zoomAvatar": "View avatar of {name}",
+    "avatarPreview": "Avatar preview",
     "dtGrade": "Grade",
     "dtSystem": "System",
     "dtTrack": "Track",
@@ -283,7 +287,15 @@
     "nextStep": "Next",
     "backStep": "Back",
     "haveAccountLogin": "Already have an account? Log in now!",
-    "createAccountCta": "Create account"
+    "createAccountCta": "Create account",
+    "telegramAuthFailed": "Telegram sign-in failed. Please try again.",
+    "telegramAuthDenied": "Telegram sign-in was cancelled. Please try again.",
+    "verifying": "Verifying Telegram…",
+    "registerStepTitle": "Create your account",
+    "registerStepSubtitle": "Sign in with Telegram to continue registration",
+    "stepThree": "Step 3",
+    "orDivider": "or",
+    "telegramSessionExpired": "Telegram verification expired. Please sign in with Telegram again."
   },
   "common": {
     "appName": "Exam Platform",
@@ -299,7 +311,8 @@
     "errorSomething": "Something went wrong.",
     "aiShort": "AI",
     "toggleDarkMode": "Toggle dark mode",
-    "language": "Language"
+    "language": "Language",
+    "pendingReadOnlyToast": "Your account is awaiting admin approval. You can currently browse only."
   },
   "dashboard": {
     "welcomeBack": "Welcome back",
@@ -320,7 +333,9 @@
     "analyzing": "Analyzing your results…",
     "noDataYet": "You haven't completed any quizzes yet. Finish your first quiz and your report will appear here.",
     "aiError": "Couldn't generate the analysis right now. Please try again.",
-    "regenerate": "Regenerate"
+    "regenerate": "Regenerate",
+    "pendingBanner": "Your account is awaiting admin approval. You can browse the platform, but interactive features are locked for now.",
+    "verifyNow": "Complete verification →"
   },
   "home": {
     "badge": "The unified platform for secondary education",
@@ -426,6 +441,9 @@
     "backToHome": "Back to home",
     "title": "Onboarding",
     "subtitleNoTelegram": "Create your account and choose your study track.",
+    "subtitleWithTelegram": "Sign in with Telegram to continue, then complete your details.",
+    "telegramLinked": "Telegram linked successfully",
+    "relinkTelegram": "Re-link Telegram",
     "fullName": "Full Name *",
     "fullNamePlaceholder": "Your full name",
     "username": "Username *",

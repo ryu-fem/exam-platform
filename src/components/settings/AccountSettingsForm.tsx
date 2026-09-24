@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { Loader2, ShieldCheck } from "lucide-react";
 
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ErrorBanner } from "@/components/ui/Alert";
+import { showToast } from "@/lib/toast";
 import {
   BACCALAUREATE_ELECTIVES,
   BACCALAUREATE_TRACKS,
@@ -65,6 +67,8 @@ function localize(label: CurriculumLabel, locale: "en" | "ar") {
 
 export function AccountSettingsForm({ locale, user }: Props) {
   const t = useTranslations("settings");
+  const tc = useTranslations("common");
+  const { data: session } = useSession();
 
   const [pending, setPending] = useState<PendingRequest[]>([]);
   const [loadingPending, setLoadingPending] = useState(true);
@@ -153,6 +157,11 @@ export function AccountSettingsForm({ locale, user }: Props) {
     newValue: string,
     note: string,
   ): Promise<void> => {
+    // Read-only guest mode: PENDING accounts cannot submit change requests.
+    if (session?.user?.status === "pending") {
+      showToast(tc("pendingReadOnlyToast"));
+      return;
+    }
     setError("");
     setNotice("");
     try {
