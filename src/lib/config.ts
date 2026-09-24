@@ -7,13 +7,13 @@ export function telegramBotIdConfigured(): boolean {
 
 /**
  * The numeric bot id the Login Widget must target. Falls back to the known
- * production bot (@ksadjefjwbot / 8981873187) when the build-time env var is
+ * production bot (@Quizplatbot / 8769306244) when the build-time env var is
  * unset so the button keeps working out of the box.
  */
 export function finalBotIdNumber(): number {
   const parsed = Number(BOT_ID_ENV);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 8981873187;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 8769306244;
 }
 
 export const TELEGRAM_BOT_USERNAME =
-  process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "ksadjefjwbot";
+  process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "Quizplatbot";
