@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { signIn } from "next-auth/react";
 import { z } from "zod";
-import { ArrowLeft, BookOpenText, Check, Loader2, Send } from "lucide-react";
+import { ArrowLeft, BookOpenText } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -17,10 +17,6 @@ import { ErrorBanner } from "@/components/ui/Alert";
 import { Link, useRouter } from "@/i18n/navigation";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { Logo } from "@/components/Logo";
-import {
-  TelegramLoginButton,
-  type TelegramAuthData,
-} from "@/components/TelegramLoginButton";
 import {
   BACCALAUREATE_ELECTIVES,
   BACCALAUREATE_TRACKS,
@@ -33,32 +29,12 @@ import {
   type CurriculumLabel,
 } from "@/lib/curriculum";
 
-const TELEGRAM_TOKEN_KEY = "telegram_onboarding_token";
-const TELEGRAM_PROFILE_KEY = "telegram_onboarding_profile";
-
 const STEPS = [
-  { labelKey: "stepOne", pct: 10 },
-  { labelKey: "stepTwo", pct: 45 },
-  { labelKey: "stepThree", pct: 80 },
+  { labelKey: "stepOne", pct: 50 },
+  { labelKey: "stepTwo", pct: 100 },
 ] as const;
 
 type Step = (typeof STEPS)[number];
-
-type TelegramProfile = {
-  name: string;
-  username: string;
-  photoUrl: string;
-};
-
-type TelegramApiResponse = {
-  ok: boolean;
-  action?: "signin" | "onboarding";
-  target?: string;
-  telegramId?: string;
-  token?: string;
-  profile?: TelegramProfile;
-  error?: string;
-};
 
 type Issues = Record<string, string[] | undefined>;
 
@@ -171,31 +147,7 @@ function buildSchema(msg: (key: string) => string, usernameTaken: boolean) {
 
 type OnboardingValues = z.infer<ReturnType<typeof buildSchema>>;
 
-function readSession(key: string): string {
-  if (typeof window === "undefined") return "";
-  try {
-    return window.sessionStorage.getItem(key) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function readProfileFromStorage(): TelegramProfile {
-  const raw = readSession(TELEGRAM_PROFILE_KEY);
-  if (!raw) return { name: "", username: "", photoUrl: "" };
-  try {
-    const parsed = JSON.parse(raw) as Partial<TelegramProfile>;
-    return {
-      name: typeof parsed.name === "string" ? parsed.name : "",
-      username: typeof parsed.username === "string" ? parsed.username : "",
-      photoUrl: typeof parsed.photoUrl === "string" ? parsed.photoUrl : "",
-    };
-  } catch {
-    return { name: "", username: "", photoUrl: "" };
-  }
-}
-
-export function RegistrationWizard({ resume }: { resume?: boolean }) {
+export function RegistrationWizard() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("auth");
@@ -204,15 +156,6 @@ export function RegistrationWizard({ resume }: { resume?: boolean }) {
   const isAr = locale === "ar";
 
   const [step, setStep] = useState<Step>(STEPS[0]);
-  const [token, setToken] = useState(() => readSession(TELEGRAM_TOKEN_KEY));
-  const [profile, setProfile] = useState<TelegramProfile>(() =>
-    readProfileFromStorage(),
-  );
-  const [tgState, setTgState] = useState<
-    "idle" | "verifying" | "verified" | "error"
-  >("idle");
-  const [tgError, setTgError] = useState("");
-
   const [usernameTaken, setUsernameTaken] = useState(false);
   const [globalError, setGlobalError] = useState("");
   const [issues, setIssues] = useState<Issues>({});
@@ -237,8 +180,8 @@ export function RegistrationWizard({ resume }: { resume?: boolean }) {
     resolver,
     mode: "all",
     defaultValues: {
-      name: profile.name,
-      username: profile.username,
+      name: "",
+      username: "",
       password: "",
       year: "",
       system: "",
@@ -247,29 +190,6 @@ export function RegistrationWizard({ resume }: { resume?: boolean }) {
       electiveSubject: "",
     },
   });
-
-  // Resume an in-progress registration on /onboarding when a token exists.
-  useEffect(() => {
-    if (!resume) return;
-    const savedToken = readSession(TELEGRAM_TOKEN_KEY);
-    if (savedToken) {
-      const savedProfile = readProfileFromStorage();
-      setProfile(savedProfile);
-      setToken(savedToken);
-      setStep(STEPS[1]);
-      reset({
-        name: savedProfile.name,
-        username: savedProfile.username,
-        password: "",
-        year: "",
-        system: "",
-        section: "",
-        track: "",
-        electiveSubject: "",
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const watchedYear = watch("year");
   const watchedSystem = watch("system");
@@ -359,62 +279,7 @@ export function RegistrationWizard({ resume }: { resume?: boolean }) {
     void trigger();
   };
 
-  const handleTelegramAuth = async (data: TelegramAuthData) => {
-    setTgState("verifying");
-    setTgError("");
-    try {
-      const res = await fetch("/api/auth/telegram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const json = (await res.json()) as TelegramApiResponse;
-
-      if (!json.ok) {
-        setTgState("error");
-        setTgError(json.error ?? t("telegramAuthFailed"));
-        return;
-      }
-
-      if (json.action === "onboarding" && json.token) {
-        const savedProfile: TelegramProfile = {
-          name: json.profile?.name ?? "",
-          username: json.profile?.username ?? "",
-          photoUrl: json.profile?.photoUrl ?? "",
-        };
-        try {
-          window.sessionStorage.setItem(TELEGRAM_TOKEN_KEY, json.token);
-          window.sessionStorage.setItem(
-            TELEGRAM_PROFILE_KEY,
-            JSON.stringify(savedProfile),
-          );
-        } catch {
-          // Storage unavailable — keep the values in memory for this session.
-        }
-        setToken(json.token);
-        setProfile(savedProfile);
-        setTgState("verified");
-        return;
-      }
-
-      if (json.action === "signin") {
-        await signIn("telegram", {
-          redirect: false,
-          telegramId: json.telegramId,
-        });
-        router.push(json.target ?? "/dashboard");
-        return;
-      }
-
-      setTgState("error");
-      setTgError(t("telegramAuthFailed"));
-    } catch {
-      setTgState("error");
-      setTgError(tc("tryAgain"));
-    }
-  };
-
-  const nextToForm = async () => {
+  const nextToStudyStep = async () => {
     const ok = await trigger(["name", "username", "password"]);
     if (ok) setStep(STEPS[1]);
   };
@@ -423,12 +288,6 @@ export function RegistrationWizard({ resume }: { resume?: boolean }) {
     setBusy(true);
     setGlobalError("");
     setIssues({});
-
-    if (!token) {
-      setGlobalError(t("telegramAuthRequired"));
-      setBusy(false);
-      return;
-    }
 
     const payload: Record<string, string> = {
       name: values.name,
@@ -446,7 +305,6 @@ export function RegistrationWizard({ resume }: { resume?: boolean }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
@@ -480,12 +338,6 @@ export function RegistrationWizard({ resume }: { resume?: boolean }) {
         return;
       }
 
-      try {
-        window.sessionStorage.removeItem(TELEGRAM_TOKEN_KEY);
-        window.sessionStorage.removeItem(TELEGRAM_PROFILE_KEY);
-      } catch {
-        // ignore
-      }
       router.push("/verify");
     } catch {
       setGlobalError(tc("tryAgain"));
@@ -494,8 +346,7 @@ export function RegistrationWizard({ resume }: { resume?: boolean }) {
   };
 
   const isBaccalaureate = watchedSystem === "baccalaureate";
-  const step2Valid = !(errors.name || errors.username || errors.password);
-  const verified = tgState === "verified";
+  const accountStepValid = !(errors.name || errors.username || errors.password);
 
   return (
     <>
@@ -517,399 +368,270 @@ export function RegistrationWizard({ resume }: { resume?: boolean }) {
             </div>
           </div>
 
-          {step === STEPS[0] ? (
-            <Card>
-              <CardContent className="space-y-6 pt-8">
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <Logo showText={false} size={56} />
-                  <h1 className="text-2xl font-bold tracking-tight">
-                    {t("registerStepTitle")}
-                  </h1>
-                  <p className="max-w-xs text-sm text-muted">
-                    {t("registerStepSubtitle")}
-                  </p>
-                </div>
-
-                {tgState === "verifying" && (
-                  <div className="flex items-center justify-center gap-2 text-sm text-muted">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t("verifying")}
-                  </div>
-                )}
-
-                {tgState === "error" && (
-                  <div className="space-y-4">
-                    <ErrorBanner>{tgError}</ErrorBanner>
-                    <div className="flex justify-center">
-                      <TelegramLoginButton
-                        label={t("telegramLogIn")}
-                        onAuth={(d) => void handleTelegramAuth(d)}
-                        onCancel={() => {
-                          setTgState("error");
-                          setTgError(t("telegramPopupCancelled"));
-                        }}
-                        onBlocked={() => {
-                          setTgState("error");
-                          setTgError(t("telegramPopupBlocked"));
-                        }}
-                        onConfigError={() => {
-                          setTgState("error");
-                          setTgError(t("telegramNotConfigured"));
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {tgState === "idle" && (
-                  <div className="flex flex-col items-center gap-3">
-                    <TelegramLoginButton
-                      label={t("telegramLogIn")}
-                      onAuth={(d) => void handleTelegramAuth(d)}
-                      onCancel={() => {
-                        setTgState("error");
-                        setTgError(t("telegramPopupCancelled"));
-                      }}
-                      onBlocked={() => {
-                        setTgState("error");
-                        setTgError(t("telegramPopupBlocked"));
-                      }}
-                      onConfigError={() => {
-                        setTgState("error");
-                        setTgError(t("telegramNotConfigured"));
-                      }}
-                    />
-                  </div>
-                )}
-
-                {verified && (
+          <Card>
+            <CardContent>
+              <form
+                onSubmit={(e) => void handleSubmit(onSubmit)(e)}
+                className="space-y-4"
+                noValidate
+              >
+                {step === STEPS[0] ? (
                   <>
-                    <div className="flex items-center gap-3 rounded-lg border border-success/20 bg-success-muted px-3.5 py-3">
-                      {profile.photoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={profile.photoUrl}
-                          alt={profile.name}
-                          className="h-10 w-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/20 font-bold text-accent">
-                          {profile.name?.charAt(0) || <Send className="h-5 w-5" />}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        {profile.name && (
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {profile.name}
-                          </p>
-                        )}
-                        {profile.username && (
-                          <p className="truncate text-xs text-muted">
-                            @{profile.username}
-                          </p>
-                        )}
-                      </div>
-                      <Check className="h-5 w-5 shrink-0 text-success" />
+                    <div className="flex flex-col items-center gap-3 pb-2 pt-2 text-center">
+                      <Logo showText={false} size={56} />
+                      <h1 className="text-2xl font-bold tracking-tight">
+                        {t("accountStepTitle")}
+                      </h1>
+                      <p className="max-w-xs text-sm text-muted">
+                        {t("accountStepSubtitle")}
+                      </p>
                     </div>
+
+                    {globalError && <ErrorBanner>{globalError}</ErrorBanner>}
+
+                    <Field>
+                      <Label htmlFor="name">{to("fullName")}</Label>
+                      <Input
+                        id="name"
+                        {...register("name")}
+                        placeholder={to("fullNamePlaceholder")}
+                        error={errors.name?.message ?? issues?.name?.[0]}
+                      />
+                    </Field>
+
+                    <Field>
+                      <Label htmlFor="username">{to("username")}</Label>
+                      <Input
+                        id="username"
+                        {...register("username")}
+                        placeholder={to("usernamePlaceholder")}
+                        autoComplete="username"
+                        error={
+                          errors.username?.message ?? issues?.username?.[0]
+                        }
+                      />
+                    </Field>
+
+                    <Field>
+                      <Label htmlFor="password">{to("password")}</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        {...register("password")}
+                        placeholder={to("passwordPlaceholder")}
+                        autoComplete="new-password"
+                        error={
+                          errors.password?.message ?? issues?.password?.[0]
+                        }
+                      />
+                    </Field>
 
                     <Button
+                      type="button"
                       size="lg"
-                      className="w-full"
-                      onClick={() => setStep(STEPS[1])}
+                      className="w-full pt-2"
+                      disabled={!accountStepValid}
+                      onClick={() => void nextToStudyStep()}
                     >
                       {t("nextStep")}
                     </Button>
+
+                    <p className="pt-2 text-center text-sm text-muted">
+                      {t("haveAccountLogin")}{" "}
+                      <Link
+                        href="/login"
+                        className="font-medium text-foreground underline-offset-4 hover:underline"
+                      >
+                        {t("login")}
+                      </Link>
+                    </p>
                   </>
-                )}
-
-                <p className="text-center text-sm text-muted">
-                  {t("haveAccountLogin")}{" "}
-                  <Link
-                    href="/login"
-                    className="font-medium text-foreground underline-offset-4 hover:underline"
-                  >
-                    {t("login")}
-                  </Link>
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <div className="px-5 pt-5 sm:px-6">
-                <Link
-                  href="/"
-                  className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted transition-all duration-200 ease-in-out hover:text-foreground"
-                >
-                  <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-                  {to("backToHome")}
-                </Link>
-                {step === STEPS[1] ? (
-                  <div>
-                    <h1 className="text-2xl font-bold tracking-tight">
-                      {t("accountStepTitle")}
-                    </h1>
-                    <p className="mt-1 text-sm text-muted">
-                      {t("accountStepSubtitle")}
-                    </p>
-                  </div>
                 ) : (
-                  <div>
-                    <h1 className="text-2xl font-bold tracking-tight">
-                      {to("title")}
-                    </h1>
-                    <p className="mt-1 text-sm text-muted">
-                      {to("subtitleWithTelegram")}
-                    </p>
-                  </div>
-                )}
-              </div>
+                  <>
+                    <Link
+                      href="/"
+                      className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted transition-all duration-200 ease-in-out hover:text-foreground"
+                    >
+                      <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+                      {to("backToHome")}
+                    </Link>
 
-              {profile.name || profile.photoUrl ? (
-                <div className="mx-5 mt-4 flex items-center gap-2 rounded-lg border border-success/20 bg-success-muted px-3.5 py-2.5 text-sm text-success sm:mx-6">
-                  <Check className="h-4 w-4 shrink-0" />
-                  <span className="truncate">
-                    {to("telegramLinked")}
-                    {profile.name ? ` — ${profile.name}` : ""}
-                  </span>
-                </div>
-              ) : null}
+                    <div className="pb-1">
+                      <h1 className="text-2xl font-bold tracking-tight">
+                        {to("title")}
+                      </h1>
+                      <p className="mt-1 text-sm text-muted">
+                        {to("subtitleNoTelegram")}
+                      </p>
+                    </div>
 
-              <CardContent>
-                <form
-                  onSubmit={(e) => void handleSubmit(onSubmit)(e)}
-                  className="space-y-4"
-                  noValidate
-                >
-                  {globalError && <ErrorBanner>{globalError}</ErrorBanner>}
+                    {globalError && <ErrorBanner>{globalError}</ErrorBanner>}
 
-                  {step === STEPS[1] ? (
-                    <>
+                    <div className="grid gap-4 sm:grid-cols-2">
                       <Field>
-                        <Label htmlFor="name">{to("fullName")}</Label>
-                        <Input
-                          id="name"
-                          {...register("name")}
-                          placeholder={to("fullNamePlaceholder")}
-                          error={errors.name?.message ?? issues?.name?.[0]}
+                        <Label htmlFor="year">{to("grade")}</Label>
+                        <Select
+                          id="year"
+                          options={YEARS.map((y) => ({
+                            value: y.value,
+                            label: localize(y.label, locale),
+                          }))}
+                          placeholder={to("gradePlaceholder")}
+                          value={watchedYear}
+                          onChange={(e) => resetAfterYear(e.target.value)}
+                          error={errors.year?.message ?? issues?.year?.[0]}
                         />
                       </Field>
 
                       <Field>
-                        <Label htmlFor="username">{to("username")}</Label>
-                        <Input
-                          id="username"
-                          {...register("username")}
-                          placeholder={to("usernamePlaceholder")}
-                          autoComplete="username"
+                        <Label htmlFor="system">{to("system")}</Label>
+                        <Select
+                          id="system"
+                          options={systemOptions.map((s) => ({
+                            value: s.value,
+                            label: localize(s.label, locale),
+                          }))}
+                          placeholder={
+                            watchedYear
+                              ? to("systemPlaceholder")
+                              : to("systemFirst")
+                          }
+                          value={watchedSystem}
+                          disabled={!watchedYear}
+                          onChange={(e) => resetAfterSystem(e.target.value)}
                           error={
-                            errors.username?.message ?? issues?.username?.[0]
+                            errors.system?.message ?? issues?.system?.[0]
                           }
                         />
                       </Field>
+                    </div>
 
-                      <Field>
-                        <Label htmlFor="password">{to("password")}</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          {...register("password")}
-                          placeholder={to("passwordPlaceholder")}
-                          autoComplete="new-password"
-                          error={
-                            errors.password?.message ?? issues?.password?.[0]
-                          }
-                        />
-                      </Field>
-
-                      <div className="flex flex-col gap-3 pt-2 sm:flex-row-reverse">
-                        <Button
-                          type="button"
-                          size="lg"
-                          className="w-full"
-                          disabled={!step2Valid}
-                          onClick={() => void nextToForm()}
-                        >
-                          {t("nextStep")}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="lg"
-                          className="w-full"
-                          onClick={() => setStep(STEPS[0])}
-                        >
-                          {t("backStep")}
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="grid gap-4 sm:grid-cols-2">
+                    {isBaccalaureate ? (
+                      <>
                         <Field>
-                          <Label htmlFor="year">{to("grade")}</Label>
+                          <Label htmlFor="track">{to("track")}</Label>
                           <Select
-                            id="year"
-                            options={YEARS.map((y) => ({
-                              value: y.value,
-                              label: localize(y.label, locale),
+                            id="track"
+                            options={trackOptions.map((tr) => ({
+                              value: tr.value,
+                              label: localize(tr.label, locale),
                             }))}
-                            placeholder={to("gradePlaceholder")}
-                            value={watchedYear}
-                            onChange={(e) => resetAfterYear(e.target.value)}
-                            error={errors.year?.message ?? issues?.year?.[0]}
+                            placeholder={to("trackPlaceholder")}
+                            value={watchedTrack}
+                            onChange={(e) => {
+                              setSelect("track", e.target.value);
+                              setSelect("electiveSubject", "");
+                              void trigger();
+                            }}
+                            error={
+                              errors.track?.message ?? issues?.track?.[0]
+                            }
                           />
                         </Field>
 
+                        {watchedTrack && (
+                          <Field>
+                            <Label htmlFor="elective">{to("elective")}</Label>
+                            <Select
+                              id="elective"
+                              options={electiveOptions.map((el) => ({
+                                value: el.value,
+                                label: localize(el.label, locale),
+                              }))}
+                              placeholder={to("electivePlaceholder")}
+                              value={watchedElective}
+                              onChange={(e) => {
+                                setSelect("electiveSubject", e.target.value);
+                                void trigger();
+                              }}
+                              error={
+                                errors.electiveSubject?.message ??
+                                issues?.electiveSubject?.[0]
+                              }
+                            />
+                          </Field>
+                        )}
+                      </>
+                    ) : (
+                      sectionOptions.length > 0 && (
                         <Field>
-                          <Label htmlFor="system">{to("system")}</Label>
+                          <Label htmlFor="section">{to("section")}</Label>
                           <Select
-                            id="system"
-                            options={systemOptions.map((s) => ({
+                            id="section"
+                            options={sectionOptions.map((s) => ({
                               value: s.value,
                               label: localize(s.label, locale),
                             }))}
-                            placeholder={
-                              watchedYear
-                                ? to("systemPlaceholder")
-                                : to("systemFirst")
-                            }
-                            value={watchedSystem}
-                            disabled={!watchedYear}
-                            onChange={(e) => resetAfterSystem(e.target.value)}
+                            placeholder={to("sectionPlaceholder")}
+                            value={watchedSection}
+                            onChange={(e) => {
+                              setSelect("section", e.target.value);
+                              void trigger();
+                            }}
                             error={
-                              errors.system?.message ?? issues?.system?.[0]
+                              errors.section?.message ?? issues?.section?.[0]
                             }
                           />
                         </Field>
-                      </div>
+                      )
+                    )}
 
-                      {isBaccalaureate ? (
-                        <>
-                          <Field>
-                            <Label htmlFor="track">{to("track")}</Label>
-                            <Select
-                              id="track"
-                              options={trackOptions.map((tr) => ({
-                                value: tr.value,
-                                label: localize(tr.label, locale),
-                              }))}
-                              placeholder={to("trackPlaceholder")}
-                              value={watchedTrack}
-                              onChange={(e) => {
-                                setSelect("track", e.target.value);
-                                setSelect("electiveSubject", "");
-                                void trigger();
-                              }}
-                              error={
-                                errors.track?.message ?? issues?.track?.[0]
-                              }
-                            />
-                          </Field>
-
-                          {watchedTrack && (
-                            <Field>
-                              <Label htmlFor="elective">{to("elective")}</Label>
-                              <Select
-                                id="elective"
-                                options={electiveOptions.map((el) => ({
-                                  value: el.value,
-                                  label: localize(el.label, locale),
-                                }))}
-                                placeholder={to("electivePlaceholder")}
-                                value={watchedElective}
-                                onChange={(e) => {
-                                  setSelect("electiveSubject", e.target.value);
-                                  void trigger();
-                                }}
-                                error={
-                                  errors.electiveSubject?.message ??
-                                  issues?.electiveSubject?.[0]
-                                }
-                              />
-                            </Field>
-                          )}
-                        </>
-                      ) : (
-                        sectionOptions.length > 0 && (
-                          <Field>
-                            <Label htmlFor="section">{to("section")}</Label>
-                            <Select
-                              id="section"
-                              options={sectionOptions.map((s) => ({
-                                value: s.value,
-                                label: localize(s.label, locale),
-                              }))}
-                              placeholder={to("sectionPlaceholder")}
-                              value={watchedSection}
-                              onChange={(e) => {
-                                setSelect("section", e.target.value);
-                                void trigger();
-                              }}
-                              error={
-                                errors.section?.message ?? issues?.section?.[0]
-                              }
-                            />
-                          </Field>
-                        )
-                      )}
-
-                      {subjects.length > 0 && (
-                        <div className="rounded-lg border border-border bg-surface-muted px-3.5 py-3">
-                          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
-                            <BookOpenText className="h-3.5 w-3.5" />
-                            {to("yourSubjects")}
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {subjects.map((key) => (
-                              <span
-                                key={key}
-                                className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs text-foreground"
-                              >
-                                {subjectLabel(key, isAr ? "ar" : "en")}
-                              </span>
-                            ))}
-                          </div>
+                    {subjects.length > 0 && (
+                      <div className="rounded-lg border border-border bg-surface-muted px-3.5 py-3">
+                        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+                          <BookOpenText className="h-3.5 w-3.5" />
+                          {to("yourSubjects")}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {subjects.map((key) => (
+                            <span
+                              key={key}
+                              className="rounded-full border border-border bg-surface px-2.5 py-1 text-xs text-foreground"
+                            >
+                              {subjectLabel(key, isAr ? "ar" : "en")}
+                            </span>
+                          ))}
                         </div>
+                      </div>
+                    )}
+
+                    {!watchedSection &&
+                      !isBaccalaureate &&
+                      sectionOptions.length === 0 && (
+                        <p className="text-xs text-muted">
+                          {to("noSectionNeeded")}
+                        </p>
                       )}
 
-                      {!watchedSection &&
-                        !isBaccalaureate &&
-                        sectionOptions.length === 0 && (
-                          <p className="text-xs text-muted">
-                            {to("noSectionNeeded")}
-                          </p>
-                        )}
+                    <div className="flex flex-col gap-3 pt-2 sm:flex-row-reverse">
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full"
+                        loading={busy}
+                        disabled={busy}
+                      >
+                        {busy ? to("saving") : t("createAccountCta")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="lg"
+                        className="w-full"
+                        onClick={() => setStep(STEPS[0])}
+                      >
+                        {t("backStep")}
+                      </Button>
+                    </div>
 
-                      <div className="flex flex-col gap-3 pt-2 sm:flex-row-reverse">
-                        <Button
-                          type="submit"
-                          size="lg"
-                          className="w-full"
-                          loading={busy}
-                          disabled={busy}
-                        >
-                          {busy ? to("saving") : t("createAccountCta")}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="lg"
-                          className="w-full"
-                          onClick={() => setStep(STEPS[1])}
-                        >
-                          {t("backStep")}
-                        </Button>
-                      </div>
-
-                      <p className="text-center text-xs text-muted">
-                        {to("agreeNote")}
-                      </p>
-                    </>
-                  )}
-                </form>
-              </CardContent>
-            </Card>
-          )}
+                    <p className="text-center text-xs text-muted">
+                      {to("agreeNote")}
+                    </p>
+                  </>
+                )}
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </>

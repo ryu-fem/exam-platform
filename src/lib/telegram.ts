@@ -1,5 +1,3 @@
-import crypto from "crypto";
-
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "";
 const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
@@ -33,78 +31,6 @@ export async function notifyAdmin(text: string) {
   const adminId = process.env.TELEGRAM_ADMIN_ID;
   if (!adminId) return null;
   return sendTelegramMessage(adminId, text);
-}
-
-/**
- * Verify a Telegram Login Widget auth payload.
- * @param query The auth object received from the widget callback
- */
-export function verifyTelegramAuth(query: Record<string, string>): boolean {
-  return verifyTelegramAuthDetailed(query).ok;
-}
-
-/**
- * Verify a Telegram Login Widget auth payload and report WHY it failed. The
- * reason is only meant server-side logging — the hash itself must never be
- * logged or returned to the client.
- *
- * The data-check-string is built from the exact fields the callback received
- * (sorted by key, joined with "\n"), excluding only `hash`. Numeric fields
- * (`id`, `auth_date`) pass through exactly as received.
- */
-export function verifyTelegramAuthDetailed(
-  query: Record<string, string>,
-): { ok: boolean; reason?: string } {
-  if (!BOT_TOKEN) {
-    return { ok: false, reason: "TELEGRAM_BOT_TOKEN is not set" };
-  }
-  const { hash, ...rest } = query;
-  if (!hash || !/^[a-f0-9]{64}$/i.test(hash)) {
-    return { ok: false, reason: "hash missing or malformed" };
-  }
-
-  // Reject stale logins: the auth payload must have been produced within the
-  // last day, and must not be from the future.
-  const authDate = Number(query.auth_date);
-  const ageSeconds = Math.floor(Date.now() / 1000) - authDate;
-  if (!Number.isFinite(authDate)) {
-    return { ok: false, reason: "auth_date missing or invalid" };
-  }
-  if (ageSeconds < 0) {
-    return { ok: false, reason: "auth_date is in the future" };
-  }
-  if (ageSeconds > 86400) {
-    return { ok: false, reason: `auth_date is stale (${ageSeconds}s old)` };
-  }
-
-  const dataCheckString = Object.keys(rest)
-    .sort()
-    .map((key) => `${key}=${rest[key]}`)
-    .join("\n");
-
-  const secretKey = crypto
-    .createHash("sha256")
-    .update(BOT_TOKEN)
-    .digest();
-
-  const computedHash = crypto
-    .createHmac("sha256", secretKey)
-    .update(dataCheckString)
-    .digest("hex");
-
-  const match = crypto.timingSafeEqual(
-    Buffer.from(computedHash, "hex"),
-    Buffer.from(hash, "hex"),
-  );
-
-  if (!match) {
-    return {
-      ok: false,
-      reason:
-        "hash signature mismatch (the app's TELEGRAM_BOT_TOKEN does not match the bot that signed the widget payload)",
-    };
-  }
-  return { ok: true };
 }
 
 /**

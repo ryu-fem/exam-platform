@@ -87,35 +87,6 @@ export const authOptions: NextAuthOptions = {
         }
       },
     }),
-    CredentialsProvider({
-      id: "telegram",
-      name: "Telegram",
-      credentials: {
-        telegramId: { label: "Telegram ID", type: "text" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.telegramId) return null;
-
-        const user = await prisma.user.findUnique({
-          where: { telegramId: credentials.telegramId },
-        });
-
-        if (!user) return null;
-
-        return {
-          id: user.id,
-          name: user.name,
-          username: user.username,
-          telegramId: user.telegramId ?? undefined,
-          role: user.role,
-          status: user.status,
-          year: user.year,
-          system: user.system ?? undefined,
-          track: user.track ?? undefined,
-          electiveSubject: user.electiveSubject ?? undefined,
-        };
-      },
-    }),
   ],
   callbacks: {
     async jwt({ token, user }) {

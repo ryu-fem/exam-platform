@@ -4,7 +4,7 @@ A full-stack exam platform for Egyptian secondary school students (Thanaweya Amm
 
 ## ✨ Features
 
-- 🔐 Telegram-first authentication (official Login Widget popup) + Username/Password
+- 🔐 Username/Password authentication (optionally linked to a Telegram chat)
 - 🎯 Quiz system with automatic grading
 - 📊 Admin dashboard with statistics
 - 🏆 Leaderboard
@@ -62,11 +62,9 @@ Open [http://localhost:3000](http://localhost:3000) — the default locale is Ar
 | Variable | Required | Description |
 | --- | --- | --- |
 | `DATABASE_URL` / `DIRECT_URL` | ✅ | PostgreSQL connection strings |
-| `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from [@BotFather](https://t.me/BotFather) — used to **verify** the Login Widget signature server-side |
-| `NEXT_PUBLIC_TELEGRAM_BOT_ID` | ✅ | Numeric bot id (the digits before `:` in the token). Used by the client to open the OAuth popup |
-| `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | ✅ | Bot username (no `@`) |
+| `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from [@BotFather](https://t.me/BotFather) — used for **bot notifications** and the `/api/telegram/webhook` route |
 | `TELEGRAM_ADMIN_ID` | ✅ | Telegram user id that receives notifications |
-| `NEXTAUTH_SECRET` | ✅ | Used to sign sessions **and** the short-lived onboarding tokens |
+| `NEXTAUTH_SECRET` | ✅ | Used to sign sessions |
 | `NEXTAUTH_URL` | ✅ | Canonical site URL |
 | `APP_URL` | ✅ | Public site URL (used in bot messages) |
 | `NEXT_PUBLIC_TELEGRAM_CHANNEL_URL` / `NEXT_PUBLIC_TELEGRAM_GROUP_URL` | | Channel/group links |
@@ -74,43 +72,21 @@ Open [http://localhost:3000](http://localhost:3000) — the default locale is Ar
 | `GROQ_API_KEY` | | Used for AI analysis |
 | `TELEGRAM_WEBHOOK_SECRET` | | If set, the `/api/telegram/webhook` route rejects updates without a matching `X-Telegram-Bot-Api-Secret-Token` |
 
-> ⚠️ `NEXT_PUBLIC_TELEGRAM_BOT_ID` (and `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME`) are **inlined at build time**. After changing them you must rebuild (`npm run build`), not just restart the server.
+## 🤖 Telegram bot setup (BotFather)
 
-## 🤖 Telegram Login Widget setup (BotFather)
-
-The register/login flow uses the official **Telegram Login Widget**. It will silently
-fail ("login never proceeds") if the bot and domain are not configured correctly:
-
-1. Open [@BotFather](https://t.me/BotFather) → select your bot → tap **Bot Settings**.
-2. Choose **Domain** (`/setdomain`) and enter your site's domain **without** scheme or
-   path — e.g. `exam-platform-one-omega.vercel.app` (or `localhost` while developing).
-3. Confirm that `NEXT_PUBLIC_TELEGRAM_BOT_ID` equals the numeric prefix of
-   `TELEGRAM_BOT_TOKEN`. If they disagree, the popup and the server-side signature
-   check target different bots and every login fails.
+The bot is used for **admin/student notifications** (account approved, quiz
+attempt approved, etc.) and the `/api/telegram/webhook` magic-link flow. Telegram
+OAuth **login is not used** — accounts are created with username/password and are
+optionally linked to a Telegram chat (`telegramId`) later by an admin.
 
 ### Current verified bot credentials (production)
 
 | Config | Value |
 | --- | --- |
 | Bot username | `hejqdadbot` |
-| `NEXT_PUBLIC_TELEGRAM_BOT_ID` | `8389871615` (= numeric prefix of the token) |
 | `TELEGRAM_BOT_TOKEN` | `8389871615:AAF…` from @BotFather |
 | `NEXTAUTH_URL` / `APP_URL` | `https://exam-platform-one-omega.vercel.app` |
-| BotFather `/setdomain` | `exam-platform-one-omega.vercel.app` |
-
-The numeric prefix of the token (before the `:`) **must always** equal
-`NEXT_PUBLIC_TELEGRAM_BOT_ID` — keep them in sync when rotating the token.
-
-Flow after a successful popup:
-
-1. The widget calls `Telegram.Login.auth({ bot_id, request_access: "write" })` and
-   returns `{ id, first_name, username, photo_url, auth_date, hash }`.
-2. `/api/auth/telegram` re-verifies the HMAC-SHA256 signature server-side with
-   `TELEGRAM_BOT_TOKEN` (rejecting stale `auth_date`) and, for new users, issues a
-   **short-lived signed onboarding token** (15 min, HMAC over `NEXTAUTH_SECRET`).
-3. The token lives in `sessionStorage` only — it never appears in the URL. The
-   registration submit (`/api/onboarding`) requires that token in the
-   `Authorization: Bearer` header and **ignores** any `telegramId` sent in the body.
+| Webhook domain | `exam-platform-one-omega.vercel.app` |
 
 ## 🧪 Verification
 
