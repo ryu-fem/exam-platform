@@ -38,7 +38,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
       aria-modal="true"
     >
       <div
-        className="absolute inset-0 bg-black/50 transition-opacity"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       <div

@@ -62,6 +62,12 @@ export function TelegramLoginButton({ onAuth }: Props) {
     script.setAttribute("data-request-access", "write");
     script.setAttribute("data-lang", locale.startsWith("ar") ? "ar" : "en");
 
+    // Note on "origin" vs next-intl locale prefixes: Telegram's widget builds
+    // its oauth request from `location.origin` only (host — never "/ar" etc.),
+    // so a locale-prefixed route cannot leak into Telegram's origin check.
+    // `data-onauth` and `data-auth-url` are mutually exclusive in the shipped
+    // widget (onauth wins), so we deliberately keep ONLY `data-onauth`.
+
     // Append directly to our container ref so the widget's iframe renders
     // exactly where it belongs.
     container.appendChild(script);
