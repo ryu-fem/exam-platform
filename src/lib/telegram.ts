@@ -16,21 +16,60 @@ export type TelegramAuthData = {
 
 const AUTH_DATA_MAX_AGE_SECONDS = 5 * 60;
 
+/** Failure categories surfaced to the server log so the live pairing of
+ * env→widget→bot-token can be diagnosed from one line. */
+export type TelegramAuthErrorReason =
+  | "bot_token_missing"
+  | "malformed_payload"
+  | "signature_mismatch"
+  | "expired_auth_date"
+  | "future_auth_date";
+
+export type TelegramAuthResult =
+  | { ok: true; telegramId: string }
+  | { ok: false; reason: TelegramAuthErrorReason; error: string };
+
 /**
  * Server-side verification of the Login Widget callback (official protocol):
  * secret_key = sha256(bot_token); expected = hmac_sha256(secret_key,
  * data_check_string) where data_check_string is the sorted `key=value` lines.
- * Rejects tampered signatures and stale `auth_date` payloads.
+ * The `botToken` MUST be the token of the exact bot rendered in the widget —
+ * a widget from bot A verified against bot B's token always fails here.
  */
 export function verifyTelegramAuth(
   data: TelegramAuthData,
   botToken: string,
-): { ok: boolean; error?: string } {
-  if (!botToken) return { ok: false, error: "Bot token is not configured." };
+): TelegramAuthResult {
+  if (!botToken) {
+    return {
+      ok: false,
+      reason: "bot_token_missing",
+      error: "Telegram auth failed: TELEGRAM_BOT_TOKEN is not configured.",
+    };
+  }
+
+  if (!data || typeof data !== "object") {
+    return {
+      ok: false,
+      reason: "malformed_payload",
+      error: "Telegram auth failed: payload is not a JSON object.",
+    };
+  }
 
   const hash = data.hash;
   if (typeof hash !== "string" || hash.length === 0) {
-    return { ok: false, error: "Missing Telegram auth hash." };
+    return {
+      ok: false,
+      reason: "malformed_payload",
+      error: "Telegram auth failed: missing 'hash' field.",
+    };
+  }
+  if (data.id === undefined || data.id === null || data.id === "") {
+    return {
+      ok: false,
+      reason: "malformed_payload",
+      error: "Telegram auth failed: missing 'id' field.",
+    };
   }
 
   const AUTH_KEYS = [
@@ -62,21 +101,39 @@ export function verifyTelegramAuth(
     providedBuf.length !== expectedBuf.length ||
     !timingSafeEqual(providedBuf, expectedBuf)
   ) {
-    return { ok: false, error: "Telegram auth signature mismatch." };
+    return {
+      ok: false,
+      reason: "signature_mismatch",
+      error:
+        "Token signature mismatch: the hash does not match TELEGRAM_BOT_TOKEN. " +
+        "The verifier bot and the Login Widget bot must be the same account.",
+    };
   }
 
   const authDate = Number(data.auth_date);
   if (!Number.isFinite(authDate) || authDate <= 0) {
-    return { ok: false, error: "Missing Telegram auth_date." };
+    return {
+      ok: false,
+      reason: "malformed_payload",
+      error: "Telegram auth failed: missing or invalid 'auth_date'.",
+    };
   }
   const now = Math.floor(Date.now() / 1000);
   if (now - authDate > AUTH_DATA_MAX_AGE_SECONDS) {
-    return { ok: false, error: "Telegram auth data has expired." };
+    return {
+      ok: false,
+      reason: "expired_auth_date",
+      error: `Expired auth_date: payload is ${now - authDate}s old (max ${AUTH_DATA_MAX_AGE_SECONDS}s).`,
+    };
   }
   if (authDate > now + 60) {
-    return { ok: false, error: "Telegram auth date is in the future." };
+    return {
+      ok: false,
+      reason: "future_auth_date",
+      error: `Future auth_date: payload is ${authDate - now}s ahead (clock skew?).`,
+    };
   }
-  return { ok: true };
+  return { ok: true, telegramId: String(data.id) };
 }
 
 export function getAppUrl() {

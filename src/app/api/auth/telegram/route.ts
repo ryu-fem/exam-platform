@@ -2,11 +2,17 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { verifyTelegramAuth, type TelegramAuthData } from "@/lib/telegram";
+import {
+  verifyTelegramAuth,
+  type TelegramAuthData,
+  type TelegramAuthErrorReason,
+} from "@/lib/telegram";
 import { signOnboardingToken } from "@/lib/telegram-token";
+import { TELEGRAM_BOT_USERNAME, finalBotIdNumber } from "@/lib/config";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "";
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET ?? "";
+const BOT_TOKEN_ID = BOT_TOKEN.split(":")[0] ?? "";
 
 /**
  * Receives the raw Telegram Login Widget payload on the server and:
@@ -28,8 +34,22 @@ export async function POST(req: NextRequest) {
 
     const verification = verifyTelegramAuth(body, BOT_TOKEN);
     if (!verification.ok) {
+      // Detailed server-side diagnostics: read the Vercel logs to confirm the
+      // verifier bot (TELEGRAM_BOT_TOKEN's numeric id) matches the bot that
+      // rendered the widget. A mismatch here is a bot-token pairing problem,
+      // not a code bug.
+      console.error("[api/auth/telegram] verification failed", {
+        reason: verification.reason as TelegramAuthErrorReason,
+        detail: verification.error,
+        widgetBotUsername: TELEGRAM_BOT_USERNAME,
+        widgetBotId: finalBotIdNumber(),
+        verifierBotTokenId: BOT_TOKEN_ID || null,
+        verifierTokenConfigured: BOT_TOKEN.length > 0,
+        telegramId: String(body.id ?? ""),
+        authDate: body.auth_date ?? null,
+      });
       return NextResponse.json(
-        { ok: false, error: verification.error ?? "Telegram verification failed." },
+        { ok: false, error: "Telegram verification failed." },
         { status: 401 },
       );
     }
