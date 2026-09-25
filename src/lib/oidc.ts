@@ -53,7 +53,7 @@ export function buildAuthorizationUrl(options: {
     client_id: options.clientId,
     redirect_uri: options.redirectUri,
     response_type: "code",
-    scope: "openid profile preferred_username",
+    scope: "openid profile",
     state: options.state,
     nonce: options.nonce,
     code_challenge: options.codeChallenge,

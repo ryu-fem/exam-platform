@@ -1,120 +1,82 @@
-# 🎓 Exam Platform
+# Exam Platform
 
-A full-stack exam platform for Egyptian secondary school students (Thanaweya Amma).
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-blue?logo=typescript)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+[![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-336791?logo=postgresql&logoColor=white)](https://supabase.com)
+[![Telegram OIDC](https://img.shields.io/badge/Login-Telegram_OIDC-26A5E4?logo=telegram&logoColor=white)](https://core.telegram.org/bots/telegram-login)
+[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
 
-## ✨ Features
+A full-stack exam platform built for Egyptian secondary school students (Thanaweya Amma). Students log in via Telegram, get sorted into their track (general / Azhari / IG), take auto-graded quizzes, and track their rank on a leaderboard.
 
-- 🔐 Username/Password authentication (optionally linked to a Telegram chat)
-- 🎯 Quiz system with automatic grading
-- 📊 Admin dashboard with statistics
-- 🏆 Leaderboard
-- 🌐 Arabic (RTL) + English (LTR)
-- 🌓 Dark / Light mode
-- 🤖 AI-powered motivational quotes & performance analysis
-- 📱 Fully responsive
+## Stack
 
-## 🛠️ Tech Stack
+- **Next.js 16** (App Router, TypeScript)
+- **Tailwind CSS**
+- **PostgreSQL** (Supabase) via **Prisma**
+- **NextAuth.js** for sessions
+- **next-intl** for i18n (Arabic RTL / English LTR)
+- **next-themes** for dark/light mode
+- **Groq SDK** for AI-generated performance summaries
 
-- **Framework:** Next.js 16 (App Router, TypeScript)
-- **Styling:** Tailwind CSS
-- **Database:** PostgreSQL (Supabase/Neon) + Prisma ORM
-- **Auth:** NextAuth.js
-- **i18n:** next-intl
-- **Theme:** next-themes
-- **AI:** Groq SDK
-
-## 🚀 Getting Started
-
-### 1. Clone the repository
+## Getting started
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/exam-platform.git
+git clone https://github.com/ryu-fem/exam-platform.git
 cd exam-platform
-```
-
-### 2. Install dependencies
-
-```bash
 npm install
-```
-
-### 3. Configure environment variables
-
-Copy `.env.example` to `.env` and fill in the values (see below).
-
-### 4. Set up the database
-
-```bash
+cp .env.example .env   # fill in the values below
 npx prisma db push
 npx prisma db seed
-```
-
-### 5. Run the development server
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — the default locale is Arabic (RTL).
+App runs at `http://localhost:3000`, default locale is Arabic.
 
-## 🔑 Environment Variables
+## Environment variables
 
-| Variable | Required | Description |
+| Variable | Required | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` / `DIRECT_URL` | ✅ | PostgreSQL connection strings |
-| `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from [@BotFather](https://t.me/BotFather) — used for **bot notifications**, `/api/telegram/webhook`, and server-side verification of the **Telegram Login Widget** signature. Its numeric prefix must match `TELEGRAM_BOT_ID` (`8769306244`) |
-| `NEXT_PUBLIC_TELEGRAM_BOT_ID` / `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | | **Pinned** to `@Quizplatbot` / `8769306244` in `src/lib/config.ts` — not read at build time, so stale values can't shadow the active bot |
-| `TELEGRAM_CLIENT_ID` | | OIDC client id. Defaults to the pinned bot id (`8769306244`); set only if BotFather issued a distinct Client ID under **Bot Settings → Web Login** |
-| `TELEGRAM_CLIENT_SECRET` | ✅* | OIDC client secret from **BotFather → Bot Settings → Web Login**. Required for the OpenID Connect login (the login button uses OIDC, not the legacy widget) |
-| `TELEGRAM_ADMIN_ID` | ✅ | Telegram user id that receives notifications |
-| `NEXTAUTH_SECRET` | ✅ | Used to sign sessions |
-| `NEXTAUTH_URL` | ✅ | Canonical site URL |
-| `APP_URL` | ✅ | Public site URL (used in bot messages) |
-| `NEXT_PUBLIC_TELEGRAM_CHANNEL_URL` / `NEXT_PUBLIC_TELEGRAM_GROUP_URL` | | Channel/group links |
-| `ADMIN_USERNAME` / `ADMIN_NAME` / `ADMIN_PASSWORD` | ✅ | Seed admin credentials |
-| `GROQ_API_KEY` | | Used for AI analysis |
-| `TELEGRAM_WEBHOOK_SECRET` | | If set, the `/api/telegram/webhook` route rejects updates without a matching `X-Telegram-Bot-Api-Secret-Token` |
+| `DATABASE_URL` / `DIRECT_URL` | ✓ | Postgres connection strings (pooled / direct) |
+| `TELEGRAM_BOT_TOKEN` | ✓ | From @BotFather. Used for notifications and the `/api/telegram/webhook` `/start` handler |
+| `NEXT_PUBLIC_TELEGRAM_BOT_ID` / `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | | Pinned to `8769306244` / `Quizplatbot` in `src/lib/config.ts` so a stale env var can't silently point the login flow at the wrong bot |
+| `TELEGRAM_OIDC_CLIENT_ID` | | From BotFather → Bot Settings → Web Login. Defaults to the pinned bot id if not set |
+| `TELEGRAM_OIDC_CLIENT_SECRET` | ✓ | Same place as above. Required for Telegram login |
+| `TELEGRAM_ADMIN_ID` | ✓ | Telegram user id that receives admin notifications |
+| `TELEGRAM_WEBHOOK_SECRET` | | If set, `/api/telegram/webhook` rejects any request without a matching `X-Telegram-Bot-Api-Secret-Token` header |
+| `NEXTAUTH_SECRET` | ✓ | Session signing key |
+| `NEXTAUTH_URL` / `APP_URL` | ✓ | Public site URL |
+| `NEXT_PUBLIC_TELEGRAM_CHANNEL_URL` / `NEXT_PUBLIC_TELEGRAM_GROUP_URL` | | Links shown in the UI |
+| `ADMIN_USERNAME` / `ADMIN_NAME` / `ADMIN_PASSWORD` | ✓ | Seed admin account |
+| `GROQ_API_KEY` | | Powers the AI performance summaries |
 
-## 🤖 Telegram bot setup (BotFather)
+## Telegram login
 
-The bot is used for **admin/student notifications** (account approved, quiz
-attempt approved, etc.) and the `/api/telegram/webhook` magic-link flow.
+Login uses Telegram's OIDC flow (`oauth.telegram.org`), not the legacy iframe widget — the widget's third-party iframe/cookies get blocked by strict browsers on free `*.vercel.app` domains, which was causing silent login failures.
 
-It also powers **Telegram login**, which uses the official **OpenID Connect
-(OIDC)** flow (`oauth.telegram.org`) — replacing the legacy iframe login widget
-whose third-party iframe + cookies could be blocked by strict browsers on free
-`*.vercel.app` hosting.
+1. `GET /api/telegram/oidc/init` sets `state`, PKCE `code_verifier`, and a `nonce` as httpOnly cookies, and returns Telegram's authorization URL. No third-party script or iframe is loaded.
+2. User approves in Telegram → redirected to `GET /api/telegram/oidc/callback` (`redirect_uri` must be registered as an Allowed URL in BotFather).
+3. The callback validates `state`, exchanges the code at `oauth.telegram.org/token` (Basic auth with the client secret + PKCE verifier), and verifies the RS256 `id_token` against Telegram's JWKS (issuer, audience, expiry, nonce all checked).
+4. New users get a short-lived signed onboarding token and continue to step 2 of registration. Existing users get a NextAuth session and land on the dashboard. `telegramId` is always read from the verified token — never trusted from the client.
 
-Flow:
+New accounts are created as `pending` with read-only access until an admin approves them from the Requests panel.
 
-- The login button calls `GET /api/telegram/oidc/init`, which pins a CSRF
-  `state`, PKCE `code_verifier`, and anti-replay `nonce` as httpOnly cookies and
-  returns the official `oauth.telegram.org/auth` URL. No third-party script or
-  iframe is ever loaded.
-- The user approves in Telegram; the browser returns to
-  `GET /api/telegram/oidc/callback` with a `code` (`redirect_uri` = `${APP_URL}/api/telegram/oidc/callback`, registered as an Allowed URL in BotFather).
-- The callback validates `state`, exchanges the code at `oauth.telegram.org/token`
-  (HTTP Basic auth with the Client Secret + PKCE), and verifies the RS256-signed
-  `id_token` against Telegram's published JWKS (issuer `https://oauth.telegram.org`,
-  audience = Client ID, expiry, nonce).
-- New students get a short-lived (15 min) signed onboarding token → the
-  registration wizard persists it and continues Step 2. Known students get a
-  NextAuth JWT session signed server-side (PENDING signs in as a read-only
-  guest; only rejected accounts are blocked) and land on the dashboard.
-  The `telegramId` is only ever taken from the verified token, never from the
-  client. New accounts are created as `pending` with **read-only guest** access
-  (browse + see results only) until an admin approves them in the Requests panel.
+### Bot setup checklist
 
-### Current verified bot credentials (production)
+- [@BotFather](https://t.me/BotFather) → your bot → **Bot Settings → Web Login** → register `${APP_URL}/api/telegram/oidc/callback` as an allowed redirect URI, copy the client secret into `TELEGRAM_OIDC_CLIENT_SECRET`
+- Same bot → `/setdomain` → set it to your app's domain (no scheme, no path)
+- Register the webhook for the `/start` notification handler:
 
-| Config | Value |
-| --- | --- |
-| Bot username | `Quizplatbot` |
-| `TELEGRAM_BOT_TOKEN` | `8769306244:AAF…` from @BotFather |
-| `NEXTAUTH_URL` / `APP_URL` | `https://exam-platform-one-omega.vercel.app` |
-| Webhook domain | `exam-platform-one-omega.vercel.app` |
+```bash
+curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
+  --data-urlencode "url=${APP_URL}/api/telegram/webhook" \
+  --data-urlencode "secret_token=${TELEGRAM_WEBHOOK_SECRET}"
+```
 
-## 🧪 Verification
+Only one thing should ever be listening on this bot token at a time. Don't run a separate polling process (e.g. a standalone `bot.cjs` on another host) alongside the webhook — Telegram will silently drop updates for whichever one loses the race.
+
+## Verification
 
 ```bash
 npm run lint
@@ -122,19 +84,10 @@ npx tsc --noEmit
 npm run build
 ```
 
-## 🚢 Deployment
+## Deployment
 
-The project is designed for [Vercel](https://vercel.com) with Supabase/Neon Postgres:
+Deployed on Vercel. Set every variable from the table above in the project's environment settings — anything not prefixed `NEXT_PUBLIC_` stays server-side.
 
 ```bash
 vercel deploy --prod
-```
-
-Set the same env vars above in your Vercel project settings (server-side vars are not
-exposed to the client bundle). For the Telegram webhook `/start` handler:
-
-```bash
-curl -s "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
-  --data-urlencode "url=https://YOUR_DOMAIN/api/telegram/webhook" \
-  --data-urlencode "secret_token=${TELEGRAM_WEBHOOK_SECRET}"
 ```
