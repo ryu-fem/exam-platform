@@ -23,3 +23,16 @@ export function telegramBotIdConfigured(): boolean {
 export function finalBotIdNumber(): number {
   return TELEGRAM_BOT_ID;
 }
+
+/**
+ * OIDC client id for the OpenID Connect login flow. Defaults to the pinned bot
+ * id (8769306244); override with TELEGRAM_CLIENT_ID only if BotFather issued a
+ * distinct Client ID under "Web Login".
+ */
+export const TELEGRAM_CLIENT_ID =
+  process.env.TELEGRAM_CLIENT_ID ?? String(TELEGRAM_BOT_ID);
+
+/** Client secret from @BotFather → Bot Settings → Web Login. */
+export function oidcClientSecret(): string {
+  return process.env.TELEGRAM_CLIENT_SECRET ?? "";
+}

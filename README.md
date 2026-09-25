@@ -64,6 +64,8 @@ Open [http://localhost:3000](http://localhost:3000) — the default locale is Ar
 | `DATABASE_URL` / `DIRECT_URL` | ✅ | PostgreSQL connection strings |
 | `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from [@BotFather](https://t.me/BotFather) — used for **bot notifications**, `/api/telegram/webhook`, and server-side verification of the **Telegram Login Widget** signature. Its numeric prefix must match `TELEGRAM_BOT_ID` (`8769306244`) |
 | `NEXT_PUBLIC_TELEGRAM_BOT_ID` / `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | | **Pinned** to `@Quizplatbot` / `8769306244` in `src/lib/config.ts` — not read at build time, so stale values can't shadow the active bot |
+| `TELEGRAM_CLIENT_ID` | | OIDC client id. Defaults to the pinned bot id (`8769306244`); set only if BotFather issued a distinct Client ID under **Bot Settings → Web Login** |
+| `TELEGRAM_CLIENT_SECRET` | ✅* | OIDC client secret from **BotFather → Bot Settings → Web Login**. Required for the OpenID Connect login (the login button uses OIDC, not the legacy widget) |
 | `TELEGRAM_ADMIN_ID` | ✅ | Telegram user id that receives notifications |
 | `NEXTAUTH_SECRET` | ✅ | Used to sign sessions |
 | `NEXTAUTH_URL` | ✅ | Canonical site URL |
@@ -78,14 +80,30 @@ Open [http://localhost:3000](http://localhost:3000) — the default locale is Ar
 The bot is used for **admin/student notifications** (account approved, quiz
 attempt approved, etc.) and the `/api/telegram/webhook` magic-link flow.
 
-It also powers the **Telegram Login Widget**: registration starts on Step 1
-(10% progress) with a Telegram login, the signed widget payload is re-verified
-server-side at `/api/auth/telegram`, and first-time users receive a short-lived
-(15 min) signing token that `/api/onboarding` consumes — the `telegramId` and
-`avatarUrl` are locked server-side from that token and are never accepted from
-the request body. New accounts are created as `pending` and get **read-only
-guest** access (browse + see results only) until an admin approves them in the
-Requests panel.
+It also powers **Telegram login**, which uses the official **OpenID Connect
+(OIDC)** flow (`oauth.telegram.org`) — replacing the legacy iframe login widget
+whose third-party iframe + cookies could be blocked by strict browsers on free
+`*.vercel.app` hosting.
+
+Flow:
+
+- The login button calls `GET /api/telegram/oidc/init`, which pins a CSRF
+  `state`, PKCE `code_verifier`, and anti-replay `nonce` as httpOnly cookies and
+  returns the official `oauth.telegram.org/auth` URL. No third-party script or
+  iframe is ever loaded.
+- The user approves in Telegram; the browser returns to
+  `GET /api/telegram/oidc/callback` with a `code` (`redirect_uri` = `${APP_URL}/api/telegram/oidc/callback`, registered as an Allowed URL in BotFather).
+- The callback validates `state`, exchanges the code at `oauth.telegram.org/token`
+  (HTTP Basic auth with the Client Secret + PKCE), and verifies the RS256-signed
+  `id_token` against Telegram's published JWKS (issuer `https://oauth.telegram.org`,
+  audience = Client ID, expiry, nonce).
+- New students get a short-lived (15 min) signed onboarding token → the
+  registration wizard persists it and continues Step 2. Known students get a
+  NextAuth JWT session signed server-side (PENDING signs in as a read-only
+  guest; only rejected accounts are blocked) and land on the dashboard.
+  The `telegramId` is only ever taken from the verified token, never from the
+  client. New accounts are created as `pending` with **read-only guest** access
+  (browse + see results only) until an admin approves them in the Requests panel.
 
 ### Current verified bot credentials (production)
 

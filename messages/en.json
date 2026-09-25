@@ -295,7 +295,9 @@
     "registerStepSubtitle": "Sign in with Telegram to continue registration",
     "stepThree": "Step 3",
     "orDivider": "or",
-    "telegramSessionExpired": "Telegram verification expired. Please sign in with Telegram again."
+    "telegramSessionExpired": "Telegram verification expired. Please sign in with Telegram again.",
+    "telegramOidcButton": "Sign in with Telegram",
+    "oidcNotConfigured": "Telegram login is not fully configured yet. Please try again later."
   },
   "common": {
     "appName": "Exam Platform",

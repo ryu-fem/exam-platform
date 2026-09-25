@@ -1,87 +1,69 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useLocale } from "next-intl";
+import { useState } from "react";
+import { Send, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-import { TELEGRAM_BOT_USERNAME } from "@/lib/config";
-import type { TelegramAuthData } from "@/lib/telegram";
-
-declare global {
-  interface Window {
-    onTelegramAuth?: (user: TelegramAuthData) => void;
-  }
-}
-
-type Props = {
-  onAuth: (user: TelegramAuthData) => void;
-};
+import { useTelegramOidcInit } from "@/hooks/use-telegram-oidc";
 
 /**
- * Official, native Telegram Login Button rendered by Telegram's widget script
- * (telegram-widget.js). The widget anchors on a `script[data-telegram-login]`
- * tag and injects its official iframe in its place, so we append the script
- * synchronously into a dedicated ref-owned container inside `useEffect`.
+ * Official Telegram OpenID Connect login button.
  *
- * The raw payload is sent to the server (/api/auth/telegram) which re-verifies
- * the HMAC signature — the client is never trusted silently.
+ * Replaces the legacy third-party iframe widget (whose oauth iframe + its
+ * cookies could be blocked by strict browsers on free hosting). On click the
+ * OIDC flow starts server-side: /api/telegram/oidc/init pins the CSRF
+ * state / PKCE verifier / anti-replay nonce as httpOnly cookies and returns
+ * the official oauth.telegram.org authorization URL, which we open in the
+ * same tab. The user approves in Telegram, Telegram redirects back to
+ * /api/telegram/oidc/callback where the code is exchanged and verified, and
+ * the browser is routed to the dashboard (or /register for new students).
+ * No third-party script or iframe is involved anywhere.
  */
-export function TelegramLoginButton({ onAuth }: Props) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const onAuthRef = useRef(onAuth);
-  const locale = useLocale();
+export function TelegramLoginButton() {
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
+  const [error, setError] = useState("");
+  const oidcInit = useTelegramOidcInit();
 
-  // Keep the callback fresh without re-mounting the widget: parents pass inline
-  // arrows whose identity changes every render, and re-running the script
-  // append on each render is what makes the button disappear.
-  useEffect(() => {
-    onAuthRef.current = onAuth;
-  }, [onAuth]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    // Clear previous instances to prevent duplicates or rendering bugs.
-    container.innerHTML = "";
-
-    // Expose the global function Telegram expects to invoke on approval.
-    window.onTelegramAuth = (user: TelegramAuthData) => {
-      if (user && user.hash) {
-        onAuthRef.current(user);
+  const handleOidcLogin = async () => {
+    setError("");
+    try {
+      const result = await oidcInit.mutateAsync();
+      if (!result.ok || !result.url) {
+        setError(
+          result.error === "not_configured"
+            ? t("oidcNotConfigured")
+            : tc("tryAgain"),
+        );
+        return;
       }
-    };
-
-    // Create and configure the official synchronous widget script.
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.async = true;
-    script.setAttribute("data-telegram-login", TELEGRAM_BOT_USERNAME);
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-radius", "12");
-    script.setAttribute("data-onauth", "onTelegramAuth(user)");
-    script.setAttribute("data-request-access", "write");
-    script.setAttribute("data-lang", locale.startsWith("ar") ? "ar" : "en");
-
-    // Note on "origin" vs next-intl locale prefixes: Telegram's widget builds
-    // its oauth request from `location.origin` only (host — never "/ar" etc.),
-    // so a locale-prefixed route cannot leak into Telegram's origin check.
-    // `data-onauth` and `data-auth-url` are mutually exclusive in the shipped
-    // widget (onauth wins), so we deliberately keep ONLY `data-onauth`.
-
-    // Append directly to our container ref so the widget's iframe renders
-    // exactly where it belongs.
-    container.appendChild(script);
-
-    return () => {
-      container.innerHTML = "";
-      window.onTelegramAuth = undefined;
-    };
-  }, [locale]);
+      window.location.href = result.url;
+    } catch {
+      setError(tc("tryAgain"));
+    }
+  };
 
   return (
-    <div className="flex w-full min-h-[50px] items-center justify-center py-4">
-      {/* Official Telegram Widget Container Anchor */}
-      <div ref={containerRef} />
+    <div className="flex w-full min-h-[50px] flex-col items-center justify-center gap-2 py-4">
+      <button
+        type="button"
+        onClick={() => void handleOidcLogin()}
+        disabled={oidcInit.isPending}
+        className="inline-flex h-12 w-full max-w-sm items-center justify-center gap-2.5 rounded-xl px-6 text-base font-medium text-white transition-colors duration-200 shadow-md bg-[#54a9eb] hover:bg-[#3a94d8] disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {oidcInit.isPending ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <Send className="h-5 w-5" />
+        )}
+        {oidcInit.isPending
+          ? t("verifying")
+          : t("telegramOidcButton")}
+      </button>
+
+      {error && (
+        <p className="max-w-xs text-center text-sm text-foreground">{error}</p>
+      )}
     </div>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { signIn } from "next-auth/react";
 import { z } from "zod";
-import { ArrowLeft, BookOpenText, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, BookOpenText, ShieldCheck } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -17,8 +18,6 @@ import { Label, Field } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ui/Alert";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
-import { useTelegramAuth } from "@/hooks/use-telegram-auth";
-import type { TelegramAuthData } from "@/lib/telegram";
 import { Link, useRouter } from "@/i18n/navigation";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { Logo } from "@/components/Logo";
@@ -190,6 +189,7 @@ type OnboardingValues = z.infer<ReturnType<typeof buildSchema>>;
 export function RegistrationWizard() {
   const router = useRouter();
   const locale = useLocale();
+  const searchParams = useSearchParams();
   const t = useTranslations("auth");
   const to = useTranslations("onboarding");
   const tc = useTranslations("common");
@@ -205,13 +205,12 @@ export function RegistrationWizard() {
   const [telegramProfile, setTelegramProfile] = useState<Profile | null>(() =>
     readStoredProfile(),
   );
-  const [authBusy, setAuthBusy] = useState(false);
   const [usernameTaken, setUsernameTaken] = useState(false);
   const [globalError, setGlobalError] = useState("");
   const [issues, setIssues] = useState<Issues>({});
   const [busy, setBusy] = useState(false);
 
-  const telegramAuth = useTelegramAuth();
+  /* OIDC onboarding hand-off is consumed below, after useForm is set up. */
 
   const schema = useMemo(
     () => buildSchema((key) => to(key as Parameters<typeof to>[0]), usernameTaken),
@@ -242,6 +241,42 @@ export function RegistrationWizard() {
       electiveSubject: "",
     },
   });
+
+  const oidcParamsConsumed = useRef(false);
+
+  // Ingest the Telegram OIDC onboarding hand-off: the callback redirects new
+  // students to /register with a short-lived signed token + Telegram profile.
+  // It is persisted to sessionStorage (matching the resume behavior) and the
+  // query string is stripped so the token does not linger in the URL.
+  useEffect(() => {
+    if (oidcParamsConsumed.current) return;
+    const isHandoff = searchParams.get("telegram_oidc");
+    if (isHandoff !== "1") return;
+
+    oidcParamsConsumed.current = true;
+    const token = searchParams.get("token");
+    if (!token) return;
+
+    const profile: Profile = {
+      name: searchParams.get("name") ?? "",
+      username: searchParams.get("username") ?? "",
+      photoUrl: searchParams.get("photo") ?? "",
+    };
+
+    try {
+      window.sessionStorage.setItem(STORAGE_TOKEN_KEY, token);
+      window.sessionStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(profile));
+    } catch {
+      // Storage is a convenience, never a requirement.
+    }
+
+    setTelegramToken(token);
+    setTelegramProfile(profile);
+    if (profile.name) {
+      setValue("name", profile.name, { shouldValidate: true });
+    }
+    router.replace("/register");
+  }, [searchParams, router, setValue]);
 
   const watchedYear = watch("year");
   const watchedSystem = watch("system");
@@ -340,54 +375,6 @@ export function RegistrationWizard() {
       window.sessionStorage.removeItem(STORAGE_PROFILE_KEY);
     } catch {
       // ignore
-    }
-  };
-
-  const handleTelegramAuth = async (data: TelegramAuthData) => {
-    setAuthBusy(true);
-    setGlobalError("");
-    try {
-      const json = await telegramAuth.mutateAsync(data);
-
-      if (!json.ok) {
-        setGlobalError(json.error ?? t("telegramAuthFailed"));
-        return;
-      }
-
-      if (json.action === "redirect") {
-        router.push(json.target ?? "/dashboard");
-        return;
-      }
-      if (json.action === "signin") {
-        // The Telegram account already belongs to an active user.
-        router.push("/dashboard");
-        return;
-      }
-      if (json.action === "onboarding" && json.token) {
-        const profile: Profile = {
-          name: json.profile?.name ?? "",
-          username: json.profile?.username ?? "",
-          photoUrl: json.profile?.photoUrl ?? "",
-        };
-        try {
-          window.sessionStorage.setItem(STORAGE_TOKEN_KEY, json.token);
-          window.sessionStorage.setItem(
-            STORAGE_PROFILE_KEY,
-            JSON.stringify(profile),
-          );
-        } catch {
-          // Storage is a convenience, never a requirement.
-        }
-        setTelegramToken(json.token);
-        setTelegramProfile(profile);
-        if (profile.name) {
-          setValue("name", profile.name, { shouldValidate: true });
-        }
-      }
-    } catch {
-      setGlobalError(tc("tryAgain"));
-    } finally {
-      setAuthBusy(false);
     }
   };
 
@@ -577,14 +564,7 @@ export function RegistrationWizard() {
                   ) : (
                     <>
                       <div className="flex flex-col items-center gap-3">
-                        {authBusy ? (
-                          <div className="flex items-center gap-2 text-sm text-muted">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            {t("verifying")}
-                          </div>
-                        ) : (
-                          <TelegramLoginButton onAuth={(d) => void handleTelegramAuth(d)} />
-                        )}
+                        <TelegramLoginButton />
                       </div>
 
                       <p className="pt-2 text-center text-sm text-muted">

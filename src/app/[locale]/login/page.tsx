@@ -4,7 +4,6 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { Loader2 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -12,8 +11,6 @@ import { Input } from "@/components/ui/Input";
 import { Label, Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/Alert";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
-import { useTelegramAuth } from "@/hooks/use-telegram-auth";
-import type { TelegramAuthData } from "@/lib/telegram";
 import { Link, useRouter } from "@/i18n/navigation";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 
@@ -21,16 +18,12 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations("auth");
-  const tc = useTranslations("common");
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [tgBusy, setTgBusy] = useState(false);
-
-  const telegramAuth = useTelegramAuth();
 
   // Maps the error surfaced by `signIn("credentials", { redirect: false })`
   // to a human-readable message. The account-status errors are thrown from
@@ -93,59 +86,6 @@ function LoginContent() {
     setBusy(false);
   };
 
-  const handleTelegram = async (data: TelegramAuthData) => {
-    setTgBusy(true);
-    setError("");
-    try {
-      const json = await telegramAuth.mutateAsync(data);
-
-      if (!json.ok) {
-        setError(json.error ?? t("telegramAuthFailed"));
-        setTgBusy(false);
-        return;
-      }
-
-      if (json.action === "onboarding") {
-        if (json.token) {
-          try {
-            window.sessionStorage.setItem("telegram_onboarding_token", json.token);
-            window.sessionStorage.setItem(
-              "telegram_onboarding_profile",
-              JSON.stringify({
-                name: json.profile?.name ?? "",
-                username: json.profile?.username ?? "",
-                photoUrl: json.profile?.photoUrl ?? "",
-              }),
-            );
-          } catch {
-            // Storage is a convenience, never a requirement.
-          }
-        }
-        router.push("/register");
-        return;
-      }
-
-      if (json.action === "redirect") {
-        router.push(json.target ?? "/dashboard");
-        return;
-      }
-
-      const signInRes = await signIn("telegram", {
-        redirect: false,
-        telegramId: json.telegramId,
-      });
-      if (signInRes?.error) {
-        setError(t("telegramAuthFailed"));
-        setTgBusy(false);
-        return;
-      }
-      router.push(json.target ?? "/dashboard");
-    } catch {
-      setError(tc("tryAgain"));
-      setTgBusy(false);
-    }
-  };
-
   return (
     <>
       <Navbar />
@@ -161,16 +101,7 @@ function LoginContent() {
               {error && <ErrorBanner>{error}</ErrorBanner>}
 
               <div className="flex flex-col items-center gap-3">
-                {tgBusy ? (
-                  <div className="flex items-center gap-2 text-sm text-muted">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t("signingIn")}
-                  </div>
-                ) : (
-                  <TelegramLoginButton
-                    onAuth={(d) => void handleTelegram(d)}
-                  />
-                )}
+                <TelegramLoginButton />
               </div>
 
               <div className="my-5 flex items-center gap-3">
