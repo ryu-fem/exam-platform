@@ -62,8 +62,8 @@ Open [http://localhost:3000](http://localhost:3000) — the default locale is Ar
 | Variable | Required | Description |
 | --- | --- | --- |
 | `DATABASE_URL` / `DIRECT_URL` | ✅ | PostgreSQL connection strings |
-| `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from [@BotFather](https://t.me/BotFather) — used for **bot notifications**, `/api/telegram/webhook`, and server-side verification of the **Telegram Login Widget** signature |
-| `NEXT_PUBLIC_TELEGRAM_BOT_ID` / `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | ✅ | Bot id + username — inlined at build time to render the Telegram Login Widget (Step 1 of registration) |
+| `TELEGRAM_BOT_TOKEN` | ✅ | Bot token from [@BotFather](https://t.me/BotFather) — used for **bot notifications**, `/api/telegram/webhook`, and server-side verification of the **Telegram Login Widget** signature. Its numeric prefix must match `TELEGRAM_BOT_ID` (`8769306244`) |
+| `NEXT_PUBLIC_TELEGRAM_BOT_ID` / `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` | | **Pinned** to `@Quizplatbot` / `8769306244` in `src/lib/config.ts` — not read at build time, so stale values can't shadow the active bot |
 | `TELEGRAM_ADMIN_ID` | ✅ | Telegram user id that receives notifications |
 | `NEXTAUTH_SECRET` | ✅ | Used to sign sessions |
 | `NEXTAUTH_URL` | ✅ | Canonical site URL |
