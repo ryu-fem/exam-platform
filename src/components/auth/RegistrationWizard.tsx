@@ -17,6 +17,7 @@ import { Label, Field } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
 import { ErrorBanner } from "@/components/ui/Alert";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
+import { useTelegramAuth } from "@/hooks/use-telegram-auth";
 import type { TelegramAuthData } from "@/lib/telegram";
 import { Link, useRouter } from "@/i18n/navigation";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
@@ -210,6 +211,8 @@ export function RegistrationWizard() {
   const [issues, setIssues] = useState<Issues>({});
   const [busy, setBusy] = useState(false);
 
+  const telegramAuth = useTelegramAuth();
+
   const schema = useMemo(
     () => buildSchema((key) => to(key as Parameters<typeof to>[0]), usernameTaken),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -344,19 +347,7 @@ export function RegistrationWizard() {
     setAuthBusy(true);
     setGlobalError("");
     try {
-      const res = await fetch("/api/auth/telegram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const json = (await res.json()) as {
-        ok: boolean;
-        action?: string;
-        target?: string;
-        token?: string;
-        profile?: Profile;
-        error?: string;
-      };
+      const json = await telegramAuth.mutateAsync(data);
 
       if (!json.ok) {
         setGlobalError(json.error ?? t("telegramAuthFailed"));
@@ -373,7 +364,11 @@ export function RegistrationWizard() {
         return;
       }
       if (json.action === "onboarding" && json.token) {
-        const profile = json.profile ?? { name: "", username: "", photoUrl: "" };
+        const profile: Profile = {
+          name: json.profile?.name ?? "",
+          username: json.profile?.username ?? "",
+          photoUrl: json.profile?.photoUrl ?? "",
+        };
         try {
           window.sessionStorage.setItem(STORAGE_TOKEN_KEY, json.token);
           window.sessionStorage.setItem(

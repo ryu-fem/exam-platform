@@ -12,19 +12,10 @@ import { Input } from "@/components/ui/Input";
 import { Label, Field } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/Alert";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
+import { useTelegramAuth } from "@/hooks/use-telegram-auth";
 import type { TelegramAuthData } from "@/lib/telegram";
 import { Link, useRouter } from "@/i18n/navigation";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
-
-type ApiResponse = {
-  ok: boolean;
-  action?: "signin" | "onboarding" | "redirect";
-  target?: string;
-  telegramId?: string;
-  token?: string;
-  profile?: { name?: string; username?: string; photoUrl?: string };
-  error?: string;
-};
 
 function LoginContent() {
   const router = useRouter();
@@ -38,6 +29,8 @@ function LoginContent() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [tgBusy, setTgBusy] = useState(false);
+
+  const telegramAuth = useTelegramAuth();
 
   // Maps the error surfaced by `signIn("credentials", { redirect: false })`
   // to a human-readable message. The account-status errors are thrown from
@@ -104,12 +97,7 @@ function LoginContent() {
     setTgBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/auth/telegram", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const json = (await res.json()) as ApiResponse;
+      const json = await telegramAuth.mutateAsync(data);
 
       if (!json.ok) {
         setError(json.error ?? t("telegramAuthFailed"));

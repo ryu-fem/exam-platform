@@ -11,7 +11,6 @@ import { PageFade } from "@/components/PageFade";
 import { Toaster } from "@/components/ui/Toaster";
 import { routing } from "@/i18n/routing";
 import { getDir } from "@/lib/locale";
-import "../globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -74,6 +73,24 @@ export default async function LocaleLayout({
       data-scroll-behavior="smooth"
       className={`${inter.variable} ${cairo.variable} h-full antialiased`}
     >
+      <head>
+        {/*
+          Pre-paint theme bootstrap. Runs in <head> before the body parses, so
+          the `.dark` class (and its CSS variables) are in place before first
+          paint — preventing a light→dark flash on reload. It mirrors
+          next-themes' own resolution (localStorage key `theme`, default
+          follows the OS via prefers-color-scheme) and is idempotent with it:
+          the same key is read, the same class is set, so the two scripts can
+          never disagree.
+        */}
+        <script
+          id="theme-init"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem("theme");var sys=window.matchMedia("(prefers-color-scheme: dark)").matches;var t=s||(sys?"dark":"light");if(t==="dark")document.documentElement.classList.add("dark");}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="flex min-h-full flex-col transition-theme">
         <Providers>
           <NextIntlClientProvider>
