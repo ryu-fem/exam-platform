@@ -159,6 +159,11 @@ export async function verifyIdToken(options: {
     audience: options.clientId,
   });
 
+  // TEMPORARY DIAGNOSTIC — remove once the sub validation issue is resolved.
+  console.error(
+    `[oidc/callback] decoded claims: sub=${JSON.stringify(payload.sub)} (typeof ${typeof payload.sub}) iss=${payload.iss} aud=${payload.aud}`,
+  );
+
   if (options.expectedNonce) {
     const tokenNonce = typeof payload.nonce === "string" ? payload.nonce : null;
     if (!tokenNonce || tokenNonce !== options.expectedNonce) {
