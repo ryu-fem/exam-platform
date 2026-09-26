@@ -159,35 +159,53 @@ export async function verifyIdToken(options: {
     audience: options.clientId,
   });
 
-  // TEMPORARY DIAGNOSTIC — remove once the claim mapping is resolved. The
-  // payload is only profile claims (name, username, picture, sub, …), not secrets.
-  console.error(`[oidc/callback] full claims: ${JSON.stringify(payload)}`);
+  const claims = payload as typeof payload & {
+    id?: unknown;
+    given_name?: unknown;
+    family_name?: unknown;
+    preferred_username?: unknown;
+    picture?: unknown;
+  };
+
+  if (!claims.id || (typeof claims.id !== "string" && typeof claims.id !== "number")) {
+    console.error("[oidc/callback] id_token has no Telegram account 'id' claim.");
+    throw new Error("OIDC token is missing the Telegram account id claim.");
+  }
+  const telegramId = String(claims.id);
+  if (!/^\d{8,10}$/.test(telegramId)) {
+    console.error(
+      `[oidc/callback] Telegram account id claim is not a valid numeric id (id=${telegramId}).`,
+    );
+    throw new Error("OIDC subject is not a valid Telegram account id.");
+  }
+
+  // `sub` is an opaque subject identifier for the token itself, unrelated to
+  // the Telegram account id — require it per the OIDC spec but never as the
+  // account lookup key.
+  if (typeof claims.sub !== "string" || !claims.sub) {
+    console.error("[oidc/callback] id_token is missing the required 'sub' claim.");
+    throw new Error("OIDC token is missing the subject claim.");
+  }
 
   if (options.expectedNonce) {
-    const tokenNonce = typeof payload.nonce === "string" ? payload.nonce : null;
+    const tokenNonce = typeof claims.nonce === "string" ? claims.nonce : null;
     if (!tokenNonce || tokenNonce !== options.expectedNonce) {
       throw new Error("OIDC nonce mismatch (possible replay).");
     }
   }
 
-  const extra = payload as typeof payload & {
-    name?: unknown;
-    preferred_username?: unknown;
-    picture?: unknown;
-  };
-
-  const sub = typeof payload.sub === "string" ? payload.sub : "";
-  if (!/^\d{6,17}$/.test(sub)) {
-    throw new Error("OIDC subject is not a valid Telegram account id.");
-  }
+  const rawName = typeof claims.name === "string" ? claims.name : "";
+  const given = typeof claims.given_name === "string" ? claims.given_name : "";
+  const family = typeof claims.family_name === "string" ? claims.family_name : "";
+  const name = rawName || [given, family].filter(Boolean).join(" ").trim();
 
   return {
-    telegramId: sub,
-    name: typeof extra.name === "string" ? extra.name : "",
+    telegramId,
+    name,
     username:
-      typeof extra.preferred_username === "string"
-        ? extra.preferred_username
+      typeof claims.preferred_username === "string"
+        ? claims.preferred_username
         : "",
-    photoUrl: typeof extra.picture === "string" ? extra.picture : null,
+    photoUrl: typeof claims.picture === "string" ? claims.picture : null,
   };
 }
