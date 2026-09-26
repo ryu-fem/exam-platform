@@ -76,6 +76,13 @@ export async function exchangeAuthorizationCode(options: {
   clientId: string;
   clientSecret: string;
 }): Promise<string> {
+  // Helpful outbound log so the exact request Telegram rejected can be compared
+  // against what it expects. Never logs the client_secret or the code itself.
+  console.error(
+    `[oidc/token] request client_id=${options.clientId} redirect_uri=${options.redirectUri} ` +
+      `grant_type=authorization_code code_verifier_present=${options.codeVerifier.length > 0}`,
+  );
+
   const basic = Buffer.from(
     `${options.clientId}:${options.clientSecret}`,
   ).toString("base64url");
@@ -97,12 +104,27 @@ export async function exchangeAuthorizationCode(options: {
     cache: "no-store",
   });
 
+  // Read the raw text first: Telegram may answer with a non-JSON body, and
+  // `res.json()` would crash on JSON.parse before we ever see what it sent.
+  const rawText = await res.text();
+
   if (!res.ok) {
+    console.error(`[oidc/token] status=${res.status} body=${rawText}`);
     throw new Error(`Telegram token exchange failed with ${res.status}`);
   }
 
-  const json = (await res.json()) as { id_token?: string; error?: string };
+  let json: { id_token?: string; error?: string } | null = null;
+  try {
+    json = JSON.parse(rawText) as { id_token?: string; error?: string };
+  } catch {
+    console.error(`[oidc/token] status=${res.status} body=${rawText}`);
+    throw new Error(
+      `Telegram token exchange returned invalid JSON (status ${res.status}).`,
+    );
+  }
+
   if (!json.id_token) {
+    console.error(`[oidc/token] status=${res.status} body=${rawText}`);
     throw new Error("Telegram token response contained no id_token.");
   }
   return json.id_token;
