@@ -85,12 +85,17 @@ export async function exchangeAuthorizationCode(options: {
 
   const basic = Buffer.from(
     `${options.clientId}:${options.clientSecret}`,
-  ).toString("base64url");
+  ).toString("base64");
 
+  // Standard OAuth2 token body (RFC 6749 §4.1.3). Sent URL-encoded — NOT JSON.
+  // client_id is included as a form parameter (Telegram's endpoint reports
+  // "client_id and redirect_uri required" when it is only in the Basic auth
+  // header); redirect_uri must match the authorization request byte-for-byte.
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code: options.code,
     redirect_uri: options.redirectUri,
+    client_id: options.clientId,
     code_verifier: options.codeVerifier,
   });
 
